@@ -5,6 +5,7 @@ import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { OnboardingOrchestrator } from '../lambda/orchestrator';
 import { QDialogue } from '../q/dialogue';
+import { QIdentityManager } from '../q/identity';
 
 interface InitOptions {
   name?: string;
@@ -78,6 +79,7 @@ async function collectConfig(options: InitOptions) {
 
 async function runOnboardingSteps(orchestrator: OnboardingOrchestrator, qDialogue: QDialogue) {
   const steps = [
+    { name: 'Creating Q\'s identity and capabilities', fn: () => createQIdentity() },
     { name: 'Creating IAM roles for you and Q', fn: () => orchestrator.createRoles() },
     { name: 'Setting up AWS credentials', fn: () => orchestrator.setupCredentials() },
     { name: 'Authenticating Q as your teammate', fn: () => orchestrator.authenticateQ() },
@@ -97,6 +99,22 @@ async function runOnboardingSteps(orchestrator: OnboardingOrchestrator, qDialogu
       throw error;
     }
   }
+}
+
+async function createQIdentity() {
+  const identityManager = new QIdentityManager();
+  
+  // Check if Q already exists
+  const existingIdentity = await identityManager.loadIdentity();
+  if (existingIdentity) {
+    console.log(chalk.yellow('Q identity already exists, skipping creation'));
+    return;
+  }
+  
+  // Create new Q identity
+  const identity = await identityManager.createIdentity('Q');
+  console.log(chalk.green(`Created Q identity: ${identity.id}`));
+  console.log(chalk.cyan(`Q starts at ${identity.level.toUpperCase()} level with ${identity.permissions.length} permissions`));
 }
 
 async function createLocalEnvironment(config: any) {
