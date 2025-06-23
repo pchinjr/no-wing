@@ -2,12 +2,10 @@
  * Q Task Execution System
  * 
  * Handles Q's task execution with proper capability level checking
- * and AWS integration for the MVP demo
+ * and simulated AWS integration for the MVP demo
  */
 
 import { QIdentityManager, QCapabilityLevel, QTask } from './identity';
-import { LambdaClient, InvokeCommand, GetFunctionCommand } from '@aws-sdk/client-lambda';
-import { CloudWatchLogsClient, DescribeLogGroupsCommand, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import chalk from 'chalk';
 
 export interface TaskResult {
@@ -19,13 +17,9 @@ export interface TaskResult {
 
 export class QTaskExecutor {
   private identityManager: QIdentityManager;
-  private lambdaClient: LambdaClient;
-  private logsClient: CloudWatchLogsClient;
 
   constructor(region: string = 'us-east-1') {
     this.identityManager = new QIdentityManager();
-    this.lambdaClient = new LambdaClient({ region });
-    this.logsClient = new CloudWatchLogsClient({ region });
   }
 
   /**
