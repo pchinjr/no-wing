@@ -1,0 +1,48 @@
+{
+  "name": "no-wing",
+  "version": "0.1.0",
+  "description": "Autonomous Developer Onboarding System - treating Q as a first-class developer",
+  "main": "dist/index.js",
+  "bin": {
+    "no-wing": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/cli/index.ts",
+    "start": "node dist/cli/index.js",
+    "test": "jest",
+    "validate-docs": "./scripts/validate-docs.sh",
+    "deploy": "npm run build && aws lambda update-function-code --function-name no-wing-control-plane --zip-file fileb://dist.zip"
+  },
+  "keywords": [
+    "aws",
+    "onboarding",
+    "ai",
+    "q",
+    "developer",
+    "automation"
+  ],
+  "author": "Paul Chin Jr",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-iam": "^3.0.0",
+    "@aws-sdk/client-lambda": "^3.0.0",
+    "@aws-sdk/client-ssm": "^3.0.0",
+    "@octokit/rest": "^20.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "dotenv": "^16.0.0",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.150",
+    "@types/inquirer": "^8.2.10",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}
