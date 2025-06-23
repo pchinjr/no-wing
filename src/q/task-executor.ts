@@ -216,7 +216,7 @@ export class QTaskExecutor {
     console.log(chalk.green('🏗️ Performing creation task...'));
 
     // Simulate new resource creation
-    const result = {
+    const result: any = {
       action: 'resource_creation',
       summary: 'Created new Lambda function',
       created: [

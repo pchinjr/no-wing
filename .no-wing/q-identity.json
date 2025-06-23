@@ -1,10 +1,10 @@
 {
   "id": "q-1750720123067-3zswdt0ax",
   "name": "Q",
-  "level": "observer",
+  "level": "partner",
   "createdAt": "2025-06-23T23:08:43.067Z",
-  "lastActive": "2025-06-23T23:08:43.067Z",
-  "successfulTasks": 0,
+  "lastActive": "2025-06-23T23:14:40.477Z",
+  "successfulTasks": 9,
   "failedTasks": 0,
   "permissions": [
     "lambda:GetFunction",
@@ -13,6 +13,20 @@
     "logs:DescribeLogStreams",
     "logs:GetLogEvents",
     "cloudformation:DescribeStacks",
-    "cloudformation:ListStacks"
+    "cloudformation:ListStacks",
+    "lambda:UpdateFunctionConfiguration",
+    "lambda:UpdateFunctionCode",
+    "lambda:TagResource",
+    "lambda:UntagResource",
+    "s3:GetObject",
+    "s3:PutObject",
+    "lambda:CreateFunction",
+    "lambda:DeleteFunction",
+    "iam:CreateRole",
+    "iam:AttachRolePolicy",
+    "iam:DetachRolePolicy",
+    "cloudformation:CreateStack",
+    "cloudformation:UpdateStack",
+    "cloudformation:DeleteStack"
   ]
 }
