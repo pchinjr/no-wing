@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { initCommand } from './init';
 import { nothingCommand } from './nothing';
 import { verifyCommand, approveCommand, denyCommand } from './verify';
+import { qTaskCommand, qStatusCommand } from './q-task';
 
 const program = new Command();
 
@@ -44,6 +45,18 @@ program
   .description('❌ Deny Q\'s permission request')
   .argument('<requestId>', 'Request ID to deny')
   .action(denyCommand);
+
+// Q task commands
+program
+  .command('q-task')
+  .description('🤖 Execute a task with Q')
+  .argument('<task>', 'Task description for Q to perform')
+  .action(qTaskCommand);
+
+program
+  .command('q-status')
+  .description('📊 Show Q\'s current status and capabilities')
+  .action(qStatusCommand);
 
 // Easter egg command
 program
