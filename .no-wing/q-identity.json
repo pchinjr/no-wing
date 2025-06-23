@@ -1,0 +1,18 @@
+{
+  "id": "q-1750720123067-3zswdt0ax",
+  "name": "Q",
+  "level": "observer",
+  "createdAt": "2025-06-23T23:08:43.067Z",
+  "lastActive": "2025-06-23T23:08:43.067Z",
+  "successfulTasks": 0,
+  "failedTasks": 0,
+  "permissions": [
+    "lambda:GetFunction",
+    "lambda:ListFunctions",
+    "logs:DescribeLogGroups",
+    "logs:DescribeLogStreams",
+    "logs:GetLogEvents",
+    "cloudformation:DescribeStacks",
+    "cloudformation:ListStacks"
+  ]
+}

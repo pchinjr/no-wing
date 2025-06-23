@@ -6,6 +6,7 @@
  */
 
 import { QIdentityManager, QCapabilityLevel, QTask } from './identity';
+import { QGitIdentityManager } from './git-identity';
 import chalk from 'chalk';
 
 export interface TaskResult {
@@ -17,6 +18,7 @@ export interface TaskResult {
 
 export class QTaskExecutor {
   private identityManager: QIdentityManager;
+  private gitManager: QGitIdentityManager | null = null;
 
   constructor(region: string = 'us-east-1') {
     this.identityManager = new QIdentityManager();
@@ -36,6 +38,9 @@ export class QTaskExecutor {
         error: 'Q identity not found. Run "no-wing init" first.'
       };
     }
+
+    // Initialize Git manager
+    this.gitManager = new QGitIdentityManager(identity);
 
     console.log(chalk.cyan(`📊 Q's current level: ${identity.level.toUpperCase()}`));
     console.log(chalk.cyan(`✅ Successful tasks: ${identity.successfulTasks}`));
@@ -211,7 +216,7 @@ export class QTaskExecutor {
     console.log(chalk.green('🏗️ Performing creation task...'));
 
     // Simulate new resource creation
-    return {
+    const result = {
       action: 'resource_creation',
       summary: 'Created new Lambda function',
       created: [
@@ -231,6 +236,38 @@ export class QTaskExecutor {
       status: 'Resources created successfully',
       timestamp: new Date().toISOString()
     };
+
+    // For creation tasks, Q should make a commit to document the work
+    if (this.gitManager && task.description.toLowerCase().includes('create')) {
+      try {
+        console.log(chalk.blue('📝 Q is documenting this creation in Git...'));
+        
+        // Create a simple file to represent Q's work
+        const fs = await import('fs/promises');
+        const workLog = {
+          task: task.description,
+          result: result,
+          qLevel: 'partner',
+          timestamp: new Date().toISOString()
+        };
+        
+        await fs.writeFile('.no-wing/q-work-log.json', JSON.stringify(workLog, null, 2));
+        
+        // Commit as Q
+        const commitHash = await this.gitManager.commitAsQ(
+          `feat: ${task.description}\n\nQ created new resources as Partner-level agent`,
+          ['.no-wing/q-work-log.json']
+        );
+        
+        result.gitCommit = commitHash;
+        console.log(chalk.green(`✅ Q documented work in commit: ${commitHash.substring(0, 8)}`));
+        
+      } catch (error) {
+        console.log(chalk.yellow('⚠️ Q could not make Git commit, but task completed'));
+      }
+    }
+
+    return result;
   }
 
   /**

@@ -6,6 +6,7 @@ import { initCommand } from './init';
 import { nothingCommand } from './nothing';
 import { verifyCommand, approveCommand, denyCommand } from './verify';
 import { qTaskCommand, qStatusCommand } from './q-task';
+import { qHistoryCommand, qGitStatusCommand } from './q-history';
 
 const program = new Command();
 
@@ -57,6 +58,17 @@ program
   .command('q-status')
   .description('📊 Show Q\'s current status and capabilities')
   .action(qStatusCommand);
+
+program
+  .command('q-history')
+  .description('📜 Show commit history with Q vs Human attribution')
+  .option('--limit <n>', 'Number of commits to show', '10')
+  .action(qHistoryCommand);
+
+program
+  .command('q-git-status')
+  .description('🔍 Show current Git identity status (Q vs Human)')
+  .action(qGitStatusCommand);
 
 // Easter egg command
 program

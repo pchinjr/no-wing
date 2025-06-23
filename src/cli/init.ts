@@ -6,6 +6,7 @@ import { join } from 'path';
 import { OnboardingOrchestrator } from '../lambda/orchestrator';
 import { QDialogue } from '../q/dialogue';
 import { QIdentityManager } from '../q/identity';
+import { QGitIdentityManager } from '../q/git-identity';
 
 interface InitOptions {
   name?: string;
@@ -108,13 +109,24 @@ async function createQIdentity() {
   const existingIdentity = await identityManager.loadIdentity();
   if (existingIdentity) {
     console.log(chalk.yellow('Q identity already exists, skipping creation'));
-    return;
+    return existingIdentity;
   }
   
   // Create new Q identity
   const identity = await identityManager.createIdentity('Q');
   console.log(chalk.green(`Created Q identity: ${identity.id}`));
   console.log(chalk.cyan(`Q starts at ${identity.level.toUpperCase()} level with ${identity.permissions.length} permissions`));
+  
+  // Set up Q's Git identity
+  const gitManager = new QGitIdentityManager(identity);
+  await gitManager.setupQGitIdentity();
+  
+  // Restore human Git identity after setup
+  await gitManager.restoreHumanGitIdentity();
+  
+  console.log(chalk.green('✅ Q\'s Git identity configured for future commits'));
+  
+  return identity;
 }
 
 async function createLocalEnvironment(config: any) {
