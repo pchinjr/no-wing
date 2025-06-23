@@ -100,10 +100,19 @@ export class QGitIdentityManager {
       console.log(chalk.green(`✅ Q committed: ${commitHash.substring(0, 8)}`));
       console.log(chalk.gray(`   Message: ${message}`));
 
+      // IMPORTANT: Restore human Git identity after Q's commit
+      await this.restoreHumanGitIdentity();
+
       return commitHash;
 
     } catch (error) {
       console.error(chalk.red('❌ Q failed to make commit:'), error);
+      // Always try to restore human identity even if commit failed
+      try {
+        await this.restoreHumanGitIdentity();
+      } catch (restoreError) {
+        console.error(chalk.red('❌ Failed to restore human Git identity:'), restoreError);
+      }
       throw error;
     }
   }
