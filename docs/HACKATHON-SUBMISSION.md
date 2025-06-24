@@ -148,25 +148,26 @@
 **Recommended Video Structure:**
 
 **0:00-0:30 - Problem Introduction**
-- Traditional AI tools are just assistants
-- Need for autonomous AI development teammate
+- Traditional AI tools are just assistants, not teammates
+- Need for autonomous AI development collaboration
 - Introduce Q as the solution
 
 **0:30-2:00 - Live Demonstration**
 - Run: `no-wing q-task "create a Lambda function for user authentication"`
-- Show real AWS resources being created
-- Display Q's Git commits as AI agent
-- Verify resources in AWS Console
+- Show real AWS resources being created in real-time
+- Display Q's Git commits as AI agent with proper attribution
+- Verify resources exist in AWS Console
 
 **2:00-2:30 - AWS Lambda Architecture**
-- Highlight orchestrator Lambda function
-- Show multiple Lambda triggers in action
-- Explain AWS service integrations
+- Highlight orchestrator Lambda function managing Q operations
+- Show multiple Lambda triggers in action (CLI, API Gateway)
+- Explain AWS service integrations (IAM, CloudWatch, STS)
 
 **2:30-3:00 - Results & Impact**
-- Real AWS infrastructure created by AI
-- Q operating as autonomous teammate
-- Business value and next steps
+- Real AWS infrastructure created autonomously by AI
+- Q operating as true development teammate
+- Business value: faster development, better collaboration
+- Future: AI-human development teams
 
 ### ✅ **4. Complete AWS Tools List**
 
