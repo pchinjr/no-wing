@@ -39,7 +39,7 @@ aws iam create-role --role-name NoWingQBaseRole \
     "Version": "2012-10-17",
     "Statement": [{
       "Effect": "Allow",
-      "Principal": {"AWS": "arn:aws:iam::ACCOUNT-ID:role/NoWingOrchestratorRole"},
+      "Principal": {"AWS": "arn:aws:iam::837132623653:role/NoWingOrchestratorRole"},
       "Action": "sts:AssumeRole",
       "Condition": {
         "StringEquals": {

@@ -12,6 +12,12 @@
     "start": "node dist/cli/index.js",
     "test": "jest",
     "validate-docs": "./scripts/validate-docs.sh",
+    "deploy:dev": "./deploy.sh dev",
+    "deploy:staging": "./deploy.sh staging", 
+    "deploy:prod": "./deploy.sh prod",
+    "sam:build": "sam build",
+    "sam:local": "sam local start-api",
+    "sam:logs": "sam logs --tail",
     "deploy": "npm run build && aws lambda update-function-code --function-name no-wing-control-plane --zip-file fileb://dist.zip"
   },
   "keywords": [

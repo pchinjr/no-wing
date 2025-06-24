@@ -1,0 +1,60 @@
+# SAM configuration file for no-wing deployment
+
+version = 0.1
+
+[default]
+[default.global]
+[default.global.parameters]
+stack_name = "no-wing"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = [
+    "Environment=dev",
+    "MonthlyCostLimit=500"
+]
+
+[default.build]
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy]
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset = true
+fail_on_empty_changeset = false
+stack_name = "no-wing"
+s3_prefix = "no-wing"
+region = "us-east-1"
+image_repositories = []
+
+[staging]
+[staging.global]
+[staging.global.parameters]
+stack_name = "no-wing-staging"
+region = "us-east-1"
+
+[staging.deploy]
+[staging.deploy.parameters]
+stack_name = "no-wing-staging"
+parameter_overrides = [
+    "Environment=staging",
+    "MonthlyCostLimit=1000"
+]
+
+[prod]
+[prod.global]
+[prod.global.parameters]
+stack_name = "no-wing-prod"
+region = "us-east-1"
+
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "no-wing-prod"
+parameter_overrides = [
+    "Environment=prod",
+    "MonthlyCostLimit=2000"
+]
+confirm_changeset = true
+fail_on_empty_changeset = false
