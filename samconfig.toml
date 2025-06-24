@@ -21,13 +21,12 @@ parallel = true
 
 [default.deploy]
 [default.deploy.parameters]
-capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = true
 fail_on_empty_changeset = false
-stack_name = "no-wing"
 s3_prefix = "no-wing"
-region = "us-east-1"
 image_repositories = []
+resolve_s3 = true
+parameter_overrides = "Environment=\"dev\" MonthlyCostLimit=\"500\" AdminEmail=\"pchinjr@gmail.com\""
 
 [staging]
 [staging.global]

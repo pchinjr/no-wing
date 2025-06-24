@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: 'no-wing - Autonomous Developer Onboarding Infrastructure'
+Description: 'no-wing - Minimal Infrastructure (No GitHub Integration)'
 
 Parameters:
   Environment:
@@ -8,16 +8,6 @@ Parameters:
     Default: dev
     AllowedValues: [dev, staging, prod]
     Description: Deployment environment
-  
-  GitHubAppId:
-    Type: String
-    Description: GitHub App ID for integration
-    NoEcho: true
-  
-  GitHubInstallationId:
-    Type: String
-    Description: GitHub App Installation ID
-    NoEcho: true
   
   MonthlyCostLimit:
     Type: Number
@@ -80,12 +70,6 @@ Resources:
                 Resource: 
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/NoWingQ*'
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/NoWingDev*'
-              # Secrets Manager for GitHub integration
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                  - secretsmanager:DescribeSecret
-                Resource: !Ref GitHubSecretsSecret
               # CloudWatch Logs
               - Effect: Allow
                 Action:
@@ -129,15 +113,6 @@ Resources:
               - budgets:*
               - support:*
             Resource: '*'
-          # Deny access to other Q instances
-          - Effect: Deny
-            Action: '*'
-            Resource: 
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/NoWingQ*'
-              - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:no-wing-*'
-            Condition:
-              StringNotEquals:
-                'aws:userid': '${aws:userid}'
           # Allow everything else within region constraints
           - Effect: Allow
             Action: '*'
@@ -188,16 +163,7 @@ Resources:
         Variables:
           Q_BASE_ROLE_ARN: !GetAtt NoWingQBaseRole.Arn
           Q_PERMISSION_BOUNDARY_ARN: !Ref NoWingQPermissionBoundary
-          GITHUB_SECRETS_ARN: !Ref GitHubSecretsSecret
           ENVIRONMENT: !Ref Environment
-      Events:
-        # API Gateway for webhook integration
-        GitHubWebhook:
-          Type: Api
-          Properties:
-            Path: /webhook/github
-            Method: post
-            RestApiId: !Ref NoWingApi
       Tags:
         NoWingComponent: orchestrator
         Environment: !Ref Environment
@@ -215,44 +181,6 @@ Resources:
       Tags:
         NoWingComponent: demo
         Environment: !Ref Environment
-
-  # ============================================================================
-  # API GATEWAY
-  # ============================================================================
-
-  NoWingApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: !Sub 'no-wing-api-${Environment}'
-      StageName: !Ref Environment
-      Cors:
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
-      Tags:
-        NoWingComponent: api
-        Environment: !Ref Environment
-
-  # ============================================================================
-  # SECRETS MANAGER
-  # ============================================================================
-
-  GitHubSecretsSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub 'no-wing/github-config-${Environment}'
-      Description: 'GitHub App configuration for no-wing'
-      SecretString: !Sub |
-        {
-          "appId": "${GitHubAppId}",
-          "installationId": "${GitHubInstallationId}",
-          "privateKey": "REPLACE_WITH_ACTUAL_PRIVATE_KEY"
-        }
-      Tags:
-        - Key: NoWingComponent
-          Value: github-integration
-        - Key: Environment
-          Value: !Ref Environment
 
   # ============================================================================
   # CLOUDWATCH LOGS
@@ -280,74 +208,6 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
-  NoWingSecurityEventsLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/no-wing/security-events-${Environment}'
-      RetentionInDays: 365
-      Tags:
-        - Key: NoWingComponent
-          Value: security-logs
-        - Key: Environment
-          Value: !Ref Environment
-
-  # ============================================================================
-  # S3 BUCKETS
-  # ============================================================================
-
-  NoWingAuditBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub 'no-wing-audit-${AWS::AccountId}-${Environment}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      VersioningConfiguration:
-        Status: Enabled
-      LifecycleConfiguration:
-        Rules:
-          - Id: DeleteOldVersions
-            Status: Enabled
-            NoncurrentVersionExpirationInDays: 90
-      Tags:
-        - Key: NoWingComponent
-          Value: audit-storage
-        - Key: Environment
-          Value: !Ref Environment
-
-  # ============================================================================
-  # CLOUDTRAIL
-  # ============================================================================
-
-  NoWingCloudTrail:
-    Type: AWS::CloudTrail::Trail
-    Properties:
-      TrailName: !Sub 'no-wing-audit-trail-${Environment}'
-      S3BucketName: !Ref NoWingAuditBucket
-      S3KeyPrefix: 'cloudtrail-logs/'
-      IncludeGlobalServiceEvents: true
-      IsMultiRegionTrail: true
-      IsLogging: true
-      EnableLogFileValidation: true
-      EventSelectors:
-        - ReadWriteType: All
-          IncludeManagementEvents: true
-          DataResources:
-            - Type: 'AWS::Lambda::Function'
-              Values:
-                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:no-wing-*'
-      Tags:
-        - Key: NoWingComponent
-          Value: audit-trail
-        - Key: Environment
-          Value: !Ref Environment
-
   # ============================================================================
   # BUDGETS AND COST CONTROL
   # ============================================================================
@@ -371,52 +231,6 @@ Resources:
           Subscribers:
             - SubscriptionType: EMAIL
               Address: !Ref AdminEmail
-        - Notification:
-            NotificationType: FORECASTED
-            ComparisonOperator: GREATER_THAN
-            Threshold: 100
-            ThresholdType: PERCENTAGE
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref AdminEmail
-
-  # ============================================================================
-  # CLOUDWATCH ALARMS
-  # ============================================================================
-
-  OrchestratorErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub 'NoWing-Orchestrator-Errors-${Environment}'
-      AlarmDescription: 'High error rate in no-wing orchestrator'
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 5
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: FunctionName
-          Value: !Ref NoWingOrchestratorFunction
-      TreatMissingData: notBreaching
-
-  QActivityVolumeAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub 'NoWing-Q-Activity-Volume-${Environment}'
-      AlarmDescription: 'Unusual Q activity volume detected'
-      MetricName: IncomingLogEvents
-      Namespace: AWS/Logs
-      Statistic: Sum
-      Period: 3600
-      EvaluationPeriods: 1
-      Threshold: 1000
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: LogGroupName
-          Value: !Ref NoWingQActivitiesLogGroup
-      TreatMissingData: notBreaching
 
 Outputs:
   OrchestratorFunctionArn:
@@ -430,21 +244,3 @@ Outputs:
     Value: !GetAtt NoWingQBaseRole.Arn
     Export:
       Name: !Sub '${AWS::StackName}-QBaseRoleArn'
-
-  ApiGatewayUrl:
-    Description: 'API Gateway endpoint URL'
-    Value: !Sub 'https://${NoWingApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
-    Export:
-      Name: !Sub '${AWS::StackName}-ApiUrl'
-
-  GitHubWebhookUrl:
-    Description: 'GitHub webhook URL'
-    Value: !Sub 'https://${NoWingApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook/github'
-    Export:
-      Name: !Sub '${AWS::StackName}-WebhookUrl'
-
-  AuditBucketName:
-    Description: 'S3 bucket for audit logs'
-    Value: !Ref NoWingAuditBucket
-    Export:
-      Name: !Sub '${AWS::StackName}-AuditBucket'
