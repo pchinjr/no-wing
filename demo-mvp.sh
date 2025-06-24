@@ -1,17 +1,18 @@
 #!/bin/bash
 
-# no-wing MVP Happy Path Demo
-# Demonstrates Q's progressive capabilities from Observer → Assistant → Partner
+# no-wing MVP Demo - Clean and Working
+# Demonstrates Q's core capabilities and interactive chat
 
 set -e
 
-echo "🛫 no-wing MVP Happy Path Demo"
-echo "========================================"
+echo "🛫 no-wing MVP Demo"
+echo "==================="
 echo ""
 echo "This demo shows Q's core capabilities:"
-echo "• Q creates real AWS Lambda functions"
+echo "• Interactive AI chat for development"
+echo "• Q creates real AWS infrastructure with SAM"
 echo "• Q commits to Git as proper AI developer"
-echo "• Q has progressive permissions and security"
+echo "• Progressive permissions and security"
 echo ""
 echo "Press Enter to start the demo..."
 read
@@ -27,258 +28,109 @@ echo "===================================="
 echo ""
 echo "$ no-wing q-status"
 echo ""
-npm run dev -- q-status
+npm run start -- q-status
 echo ""
 echo "Press Enter to continue..."
 read
 
-# Step 2: Q Analysis Task (Observer Level)
-echo "🔍 Step 2: Q Analysis Task (Observer Level)"
-echo "============================================"
+# Step 2: Interactive Chat Demo
+echo "💬 Step 2: Interactive Q Chat Demo"
+echo "==================================="
 echo ""
-echo "$ no-wing q-task \"analyze current Lambda functions\""
+echo "Let's start an interactive chat with Q..."
+echo "We'll ask Q to create a Lambda function."
 echo ""
-npm run dev -- q-task "analyze current Lambda functions"
+echo "Commands you can try in the chat:"
+echo "• create a Lambda function for user authentication"
+echo "• status"
+echo "• help"
+echo "• exit"
+echo ""
+echo "Press Enter to start chat..."
+read
+
+echo "$ no-wing chat"
+echo ""
+echo "Starting interactive chat with Q..."
+echo "(Type 'exit' to end the chat session)"
+echo ""
+
+# Start interactive chat
+npm run start -- chat
+
+echo ""
+echo "Chat session ended."
 echo ""
 echo "Press Enter to continue..."
 read
 
-# Step 3: Q Creation Task (Partner Level)
-echo "🏗️ Step 3: Q Creation Task (Partner Level)"
-echo "==========================================="
+# Step 3: One-shot Task Demo
+echo "🤖 Step 3: One-shot Task Demo"
+echo "=============================="
 echo ""
-echo "$ no-wing q-task \"create a Lambda function for user authentication\""
+echo "$ no-wing q-task \"analyze current AWS Lambda functions\""
 echo ""
-npm run dev -- q-task "create a Lambda function for user authentication"
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 4: Verify Q's Work in AWS
-echo "✅ Step 4: Verify Q's Work in AWS"
-echo "=================================="
-echo ""
-echo "$ aws lambda list-functions --query 'Functions[?starts_with(FunctionName, \`q-\`)]'"
-echo ""
-aws lambda list-functions --query 'Functions[?starts_with(FunctionName, `q-`)]' || echo "⚠️  AWS CLI not configured or no Q functions found"
+npm run start -- q-task "analyze current AWS Lambda functions"
 echo ""
 echo "Press Enter to continue..."
 read
 
-# Step 5: Check Q's Git Commits
-echo "📝 Step 5: Check Q's Git Commits"
-echo "================================="
-echo ""
-echo "$ git log --oneline -5 --author=\"Q (AI Agent\""
-echo ""
-git log --oneline -5 --author="Q (AI Agent" || echo "ℹ️  No Q commits found yet"
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 6: Q Status After Tasks
-echo "📊 Step 6: Q's Updated Status"
+# Step 4: Check Q's Updated Status
+echo "📊 Step 4: Q's Updated Status"
 echo "=============================="
 echo ""
 echo "$ no-wing q-status"
 echo ""
-npm run dev -- q-status
+npm run start -- q-status
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 5: Check Git History
+echo "📝 Step 5: Check Q's Git Commits"
+echo "================================="
+echo ""
+echo "$ git log --oneline -5 --grep=\"Q\""
+echo ""
+git log --oneline -5 --grep="Q" || echo "ℹ️  No Q commits found yet"
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 6: Verify AWS Resources (if available)
+echo "☁️ Step 6: Check AWS Resources"
+echo "==============================="
+echo ""
+echo "$ aws lambda list-functions --query 'Functions[?starts_with(FunctionName, \`q-\`)]' --output table"
+echo ""
+if command -v aws >/dev/null 2>&1; then
+    aws lambda list-functions --query 'Functions[?starts_with(FunctionName, `q-`)]' --output table 2>/dev/null || echo "ℹ️  No Q-created functions found or AWS CLI not configured"
+else
+    echo "ℹ️  AWS CLI not available - skipping resource check"
+fi
 echo ""
 
+# Demo Complete
 echo "🎉 Demo Complete!"
 echo "================="
 echo ""
 echo "✅ What we demonstrated:"
-echo "   • Q analyzed existing AWS infrastructure"
-echo "   • Q created a real Lambda function with IAM role"
-echo "   • Q committed work to Git as proper AI developer"
+echo "   • Interactive chat with Q AI teammate"
+echo "   • Q can analyze and create AWS infrastructure"
+echo "   • Q commits work to Git with proper attribution"
 echo "   • Q operates within security boundaries"
+echo "   • SAM-based Infrastructure as Code approach"
 echo ""
-echo "🛫 Q is ready to be your autonomous AWS development teammate!"
+echo "🛫 Key Features Shown:"
+echo "   • Natural language interaction with AI"
+echo "   • Real AWS resource creation (when configured)"
+echo "   • Git integration with AI agent commits"
+echo "   • Progressive capability system"
+echo "   • Professional development workflow"
 echo ""
-echo "✅ Q has been created with Observer level capabilities!"
+echo "🚀 Next Steps:"
+echo "   • Configure AWS CLI for real resource creation"
+echo "   • Try: no-wing init --name='Your Name'"
+echo "   • Start chatting: no-wing chat"
 echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 2: Check Q's initial status
-echo "📊 Step 2: Check Q's Initial Status"
-echo "===================================="
-echo ""
-echo "$ no-wing q-status"
-echo ""
-npm run dev -- q-status
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 3: Observer Level Tasks
-echo "🔍 Step 3: Observer Level Tasks"
-echo "==============================="
-echo ""
-echo "Q starts as an Observer and can read/analyze information."
-echo ""
-
-echo "Task 1: Analyze Lambda function logs"
-echo "$ no-wing q-task \"analyze the Lambda function logs\""
-echo ""
-npm run dev -- q-task "analyze the Lambda function logs"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 2: Read function configuration"
-echo "$ no-wing q-task \"read function configuration info\""
-echo ""
-npm run dev -- q-task "read function configuration info"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 3: Check performance metrics (this should advance Q to Assistant)"
-echo "$ no-wing q-task \"check function performance metrics\""
-echo ""
-npm run dev -- q-task "check function performance metrics"
-echo ""
-echo "🎉 Q should now be an Assistant! Let's check..."
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 4: Check Q's advancement
-echo "📈 Step 4: Q's Advancement to Assistant Level"
-echo "=============================================="
-echo ""
-echo "$ no-wing q-status"
-echo ""
-npm run dev -- q-status
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 5: Assistant Level Tasks
-echo "🔧 Step 5: Assistant Level Tasks"
-echo "================================"
-echo ""
-echo "Q can now modify configurations and deploy changes."
-echo ""
-
-echo "Task 1: Update Lambda function timeout"
-echo "$ no-wing q-task \"update the Lambda function timeout\""
-echo ""
-npm run dev -- q-task "update the Lambda function timeout"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 2: Modify memory allocation"
-echo "$ no-wing q-task \"modify the function memory allocation\""
-echo ""
-npm run dev -- q-task "modify the function memory allocation"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 3: Configure environment variables"
-echo "$ no-wing q-task \"configure environment variables\""
-echo ""
-npm run dev -- q-task "configure environment variables"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 4: Deploy configuration changes"
-echo "$ no-wing q-task \"deploy configuration changes\""
-echo ""
-npm run dev -- q-task "deploy configuration changes"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 5: Update function metadata (this should advance Q to Partner)"
-echo "$ no-wing q-task \"update function metadata\""
-echo ""
-npm run dev -- q-task "update function metadata"
-echo ""
-echo "🎉 Q should now be a Partner! Let's check..."
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 6: Check Q's final advancement
-echo "🚀 Step 6: Q's Advancement to Partner Level"
-echo "==========================================="
-echo ""
-echo "$ no-wing q-status"
-echo ""
-npm run dev -- q-status
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 7: Partner Level Tasks
-echo "🏗️ Step 7: Partner Level Tasks"
-echo "==============================="
-echo ""
-echo "Q can now create new resources and design architectures."
-echo ""
-
-echo "Task 1: Create a new authentication function"
-echo "$ no-wing q-task \"create a new user authentication function\""
-echo ""
-npm run dev -- q-task "create a new user authentication function"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 2: Build a data processing pipeline"
-echo "$ no-wing q-task \"build a data processing pipeline\""
-echo ""
-npm run dev -- q-task "build a data processing pipeline"
-echo ""
-echo "Press Enter for next task..."
-read
-
-echo "Task 3: Design a microservice architecture"
-echo "$ no-wing q-task \"design a microservice architecture\""
-echo ""
-npm run dev -- q-task "design a microservice architecture"
-echo ""
-echo "Press Enter to continue..."
-read
-
-# Step 8: Final Status
-echo "🎯 Step 8: Final Q Status"
-echo "========================="
-echo ""
-echo "$ no-wing q-status"
-echo ""
-npm run dev -- q-status
-echo ""
-
-# Demo Complete
-echo "🎉 MVP Demo Complete!"
-echo "===================="
-echo ""
-echo "✅ Q successfully progressed through all capability levels:"
-echo "   Observer (3 tasks) → Assistant (5 tasks) → Partner (8+ tasks)"
-echo ""
-echo "🤖 Q says: \"I'm now a full development partner! I can:"
-echo "   • Analyze and provide insights (Observer)"
-echo "   • Update and deploy changes (Assistant)" 
-echo "   • Create new resources and features (Partner)\""
-echo ""
-echo "🚀 This demonstrates the core value proposition:"
-echo "   • Autonomous onboarding for both human and AI"
-echo "   • Progressive trust and capability advancement"
-echo "   • Verifiable AI teammate progression"
-echo "   • Security-first approach with scoped permissions"
-echo ""
-echo "🛫 Ready to fly with no wings needed!"
-echo ""
-echo "Next steps for production:"
-echo "• Real AWS integration with actual Lambda functions"
-echo "• GitHub Actions integration for CI/CD"
-echo "• Multi-environment support (dev/staging/prod)"
-echo "• Team collaboration features"
-echo ""
+echo "🛫 Ready to fly with your AI development teammate!"
