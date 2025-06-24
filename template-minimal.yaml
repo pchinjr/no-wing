@@ -103,11 +103,17 @@ Resources:
               - iam:DeletePolicy
               - iam:PutUserPolicy
               - iam:AttachUserPolicy
+              - iam:CreateAccessKey
+              - iam:DeleteAccessKey
+              - iam:UpdateAccessKey
               - organizations:*
               - account:*
               - billing:*
               - budgets:*
               - support:*
+              - route53:*
+              - cloudformation:DeleteStack
+              - cloudformation:UpdateStack
             Resource: '*'
           # Deny modifying no-wing core infrastructure
           - Effect: Deny
@@ -151,7 +157,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # Lambda permissions
+              # Lambda permissions with resource limits
               - Effect: Allow
                 Action:
                   - lambda:CreateFunction
@@ -164,6 +170,10 @@ Resources:
                 Condition:
                   StringEquals:
                     'aws:RequestedRegion': !Ref AWS::Region
+                  NumericLessThan:
+                    'lambda:FunctionMemorySize': '1024'  # Max 1GB memory
+                  StringLike:
+                    'lambda:FunctionName': 'q-*'  # Only Q-prefixed functions
               # IAM permissions for Lambda roles
               - Effect: Allow
                 Action:

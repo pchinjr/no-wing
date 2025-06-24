@@ -17,6 +17,7 @@ export interface QIdentity {
   level: QCapabilityLevel;
   createdAt: string;
   lastActive: string;
+  sessionExpiry: string;
   successfulTasks: number;
   failedTasks: number;
   permissions: string[];
@@ -48,12 +49,16 @@ export class QIdentityManager {
    * Create a new Q identity with Observer level capabilities
    */
   async createIdentity(name: string = 'Q'): Promise<QIdentity> {
+    const now = new Date().toISOString();
+    const sessionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+    
     const identity: QIdentity = {
       id: this.generateId(),
       name,
       level: QCapabilityLevel.OBSERVER,
-      createdAt: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
+      createdAt: now,
+      lastActive: now,
+      sessionExpiry,
       successfulTasks: 0,
       failedTasks: 0,
       permissions: this.getPermissionsForLevel(QCapabilityLevel.OBSERVER)
@@ -71,11 +76,41 @@ export class QIdentityManager {
     try {
       const fs = await import('fs/promises');
       const data = await fs.readFile(this.configPath, 'utf-8');
-      this.identity = JSON.parse(data);
-      return this.identity;
+      const identity = JSON.parse(data) as QIdentity;
+      
+      // Check session expiry
+      if (this.isSessionExpired(identity)) {
+        console.log('Q session expired, requiring re-authentication');
+        return null;
+      }
+      
+      // Update last active time and refresh session
+      identity.lastActive = new Date().toISOString();
+      identity.sessionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      await this.saveIdentity(identity);
+      
+      this.identity = identity;
+      return identity;
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * Check if Q session has expired
+   */
+  private isSessionExpired(identity: QIdentity): boolean {
+    if (!identity.sessionExpiry) {
+      // Legacy identity without expiry - consider expired after 24 hours of inactivity
+      const lastActive = new Date(identity.lastActive);
+      const now = new Date();
+      const hoursSinceActive = (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60);
+      return hoursSinceActive > 24;
+    }
+    
+    const now = new Date();
+    const expiry = new Date(identity.sessionExpiry);
+    return now > expiry;
   }
 
   /**
