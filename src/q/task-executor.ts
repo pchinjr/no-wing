@@ -217,35 +217,34 @@ export class QTaskExecutor {
     
     if (functionName) {
       try {
-        // Perform real AWS update
-        const updateResult = await this.awsManager.updateLambdaFunction(functionName, {
-          memory: 512,
-          timeout: 60,
-          environment: {
-            NODE_ENV: 'production',
-            LOG_LEVEL: 'info',
-            UPDATED_BY: `Q-${this.identity.id}`,
-            UPDATED_AT: new Date().toISOString()
-          }
-        });
-
-        if (updateResult.success) {
-          return {
-            action: 'aws_function_update',
-            summary: `Updated Lambda function: ${functionName}`,
-            details: {
-              changes: [
-                'Increased memory to 512MB',
-                'Updated timeout to 60 seconds',
-                'Added Q tracking environment variables'
-              ],
-              resources: updateResult.resources
-            },
-            awsResources: updateResult.resources
-          };
-        }
+        // For now, SAM-based updates would require redeployment
+        // This is a placeholder for future SAM update functionality
+        console.log(`🔄 SAM-based updates not yet implemented for ${functionName}`);
+        console.log('   Consider redeploying the stack with new parameters');
+        
+        return {
+          action: 'aws_function_update_noted',
+          summary: `Noted update request for Lambda function: ${functionName}`,
+          success: true,
+          awsResources: [{
+            type: 'Lambda::Configuration',
+            name: functionName,
+            status: 'Update-Noted',
+            properties: {
+              note: 'SAM-based updates require stack redeployment'
+            }
+          }],
+          gitCommit: await this.documentWork(
+            `note: SAM update process for ${functionName}`,
+            [{
+              type: 'Lambda::Configuration',
+              name: functionName,
+              status: 'Update-Noted'
+            }]
+          )
+        };
       } catch (error) {
-        console.warn('Real AWS update failed, using simulation:', error);
+        console.warn('SAM update notation failed:', error);
       }
     }
 
@@ -488,6 +487,40 @@ Timestamp: ${new Date().toISOString()}`;
     } else {
       // Default to Lambda for most creation tasks
       return 'lambda';
+    }
+  }
+
+  /**
+   * Document Q's work in Git
+   */
+  private async documentWork(
+    commitMessage: string,
+    resources: Array<{ type: string; name: string; status: string }>
+  ): Promise<string> {
+    try {
+      const gitManager = new QGitIdentityManager(this.identity);
+      
+      // Create a simple documentation file
+      const timestamp = new Date().toISOString();
+      const workDoc = {
+        timestamp,
+        qIdentity: this.identity.id,
+        commitMessage,
+        resources,
+        level: this.identity.level
+      };
+      
+      // Write work documentation
+      const docPath = `.no-wing/work-log-${Date.now()}.json`;
+      require('fs').writeFileSync(docPath, JSON.stringify(workDoc, null, 2));
+      
+      // Commit with Q's identity
+      const commitHash = await gitManager.commitAsQ(commitMessage);
+      
+      return commitHash;
+    } catch (error) {
+      console.warn('Failed to document work in Git:', error);
+      return 'undocumented';
     }
   }
 }

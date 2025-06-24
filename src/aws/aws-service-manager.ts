@@ -1,35 +1,4 @@
-import { 
-  LambdaClient, 
-  CreateFunctionCommand, 
-  UpdateFunctionConfigurationCommand,
-  GetFunctionCommand,
-  ListFunctionsCommand,
-  DeleteFunctionCommand,
-  CreateFunctionCommandInput
-} from '@aws-sdk/client-lambda';
-import { 
-  IAMClient, 
-  CreateRoleCommand, 
-  AttachRolePolicyCommand,
-  GetRoleCommand,
-  ListRolesCommand
-} from '@aws-sdk/client-iam';
-import { 
-  S3Client, 
-  CreateBucketCommand, 
-  PutBucketPolicyCommand,
-  ListBucketsCommand,
-  GetBucketLocationCommand
-} from '@aws-sdk/client-s3';
-import { 
-  CloudWatchLogsClient, 
-  CreateLogGroupCommand,
-  DescribeLogGroupsCommand
-} from '@aws-sdk/client-cloudwatch-logs';
-import { 
-  STSClient, 
-  GetCallerIdentityCommand 
-} from '@aws-sdk/client-sts';
+import { SAMManager, SAMDeploymentResult } from './sam-manager';
 import { QIdentity } from '../q/identity';
 
 export interface AWSResource {
@@ -43,244 +12,165 @@ export interface AWSResource {
 export interface AWSOperationResult {
   success: boolean;
   resources: AWSResource[];
-  errors?: string[];
   metadata?: Record<string, any>;
+  errors?: string[];
 }
 
 export class AWSServiceManager {
-  private lambdaClient: LambdaClient;
-  private iamClient: IAMClient;
-  private s3Client: S3Client;
-  private logsClient: CloudWatchLogsClient;
-  private stsClient: STSClient;
   private region: string;
-  private accountId?: string;
+  private samManager: SAMManager;
+  private accountId: string | null = null;
 
   constructor(region: string = 'us-east-1') {
     this.region = region;
-    this.lambdaClient = new LambdaClient({ region });
-    this.iamClient = new IAMClient({ region });
-    this.s3Client = new S3Client({ region });
-    this.logsClient = new CloudWatchLogsClient({ region });
-    this.stsClient = new STSClient({ region });
+    this.samManager = new SAMManager(region);
   }
 
-  /**
-   * Get current AWS account ID
-   */
-  async getAccountId(): Promise<string> {
-    if (!this.accountId) {
-      try {
-        const command = new GetCallerIdentityCommand({});
-        const response = await this.stsClient.send(command);
-        this.accountId = response.Account || '';
-      } catch (error) {
-        console.error('Failed to get account ID:', error);
-        throw error;
-      }
-    }
-    return this.accountId;
-  }
-
-  /**
-   * Create a Lambda function with IAM role
-   */
   async createLambdaFunction(
-    functionName: string, 
+    functionName: string,
     description: string,
-    qIdentity: QIdentity
+    qIdentity: QIdentity,
+    options: {
+      runtime?: string;
+      memorySize?: number;
+      timeout?: number;
+      environment?: string;
+    } = {}
   ): Promise<AWSOperationResult> {
-    const resources: AWSResource[] = [];
-    const errors: string[] = [];
-
     try {
-      const accountId = await this.getAccountId();
+      console.log(`🏗️ Creating Lambda function with SAM: ${functionName}`);
       
-      // 1. Create IAM role for the Lambda function
-      const roleName = `${functionName}-role`;
-      const roleArn = await this.createLambdaExecutionRole(roleName, qIdentity);
-      
-      resources.push({
-        type: 'IAM::Role',
-        name: roleName,
-        arn: roleArn,
-        status: 'Created'
-      });
+      const result = await this.samManager.deployLambdaFunction(
+        functionName,
+        description,
+        qIdentity,
+        options
+      );
 
-      // 2. Create CloudWatch Log Group
-      const logGroupName = `/aws/lambda/${functionName}`;
-      await this.createLogGroup(logGroupName);
-      
-      resources.push({
-        type: 'CloudWatchLogs::LogGroup',
-        name: logGroupName,
-        status: 'Created'
-      });
-
-      // 3. Create Lambda function
-      const functionCode = this.generateBasicLambdaCode(functionName, description);
-      const zipBuffer = await this.createDeploymentPackage(functionCode);
-
-      const createFunctionParams: CreateFunctionCommandInput = {
-        FunctionName: functionName,
-        Runtime: 'nodejs18.x',
-        Role: roleArn,
-        Handler: 'index.handler',
-        Code: {
-          ZipFile: zipBuffer
-        },
-        Description: description,
-        Timeout: 30,
-        MemorySize: 256,
-        Environment: {
-          Variables: {
-            NODE_ENV: 'production',
-            LOG_LEVEL: 'info',
-            CREATED_BY: `Q-${qIdentity.id}`
-          }
-        },
-        Tags: {
-          'CreatedBy': `Q-${qIdentity.id}`,
-          'NoWingComponent': 'q-created-function',
-          'Environment': process.env.NODE_ENV || 'dev'
-        }
-      };
-
-      const createCommand = new CreateFunctionCommand(createFunctionParams);
-      
-      // Retry Lambda creation with exponential backoff for IAM propagation
-      let functionResponse;
-      let retries = 0;
-      const maxRetries = 3;
-      
-      while (retries < maxRetries) {
-        try {
-          functionResponse = await this.lambdaClient.send(createCommand);
-          break;
-        } catch (error: any) {
-          if (error.name === 'InvalidParameterValueException' && 
-              error.message.includes('cannot be assumed by Lambda') && 
-              retries < maxRetries - 1) {
-            console.log(`⏳ IAM role not ready, retrying in ${(retries + 1) * 5} seconds...`);
-            await new Promise(resolve => setTimeout(resolve, (retries + 1) * 5000));
-            retries++;
-          } else {
-            throw error;
-          }
-        }
+      if (!result.success) {
+        return {
+          success: false,
+          resources: [],
+          errors: [result.error || 'SAM deployment failed']
+        };
       }
 
-      if (!functionResponse) {
-        throw new Error('Failed to create Lambda function after retries');
-      }
-
-      resources.push({
-        type: 'Lambda::Function',
-        name: functionName,
-        arn: functionResponse.FunctionArn,
-        status: 'Created',
+      // Convert SAM resources to our format
+      const resources: AWSResource[] = result.resources?.map(resource => ({
+        type: resource.type,
+        name: resource.name,
+        arn: resource.arn,
+        status: resource.status,
         properties: {
-          runtime: functionResponse.Runtime,
-          memory: functionResponse.MemorySize,
-          timeout: functionResponse.Timeout
+          runtime: options.runtime || 'nodejs18.x',
+          memory: options.memorySize || 256,
+          timeout: options.timeout || 30
         }
-      });
+      })) || [];
 
       return {
         success: true,
         resources,
         metadata: {
-          functionArn: functionResponse.FunctionArn,
-          roleArn,
-          logGroupName
+          stackName: result.stackName,
+          outputs: result.outputs,
+          deploymentMethod: 'SAM'
         }
       };
 
     } catch (error) {
-      console.error('Failed to create Lambda function:', error);
-      errors.push(`Lambda creation failed: ${error}`);
-      
-      return {
-        success: false,
-        resources,
-        errors
-      };
-    }
-  }
-
-  /**
-   * Update Lambda function configuration
-   */
-  async updateLambdaFunction(
-    functionName: string,
-    updates: {
-      memory?: number;
-      timeout?: number;
-      environment?: Record<string, string>;
-    }
-  ): Promise<AWSOperationResult> {
-    try {
-      const updateParams: any = {
-        FunctionName: functionName
-      };
-
-      if (updates.memory) {
-        updateParams.MemorySize = updates.memory;
-      }
-      if (updates.timeout) {
-        updateParams.Timeout = updates.timeout;
-      }
-      if (updates.environment) {
-        updateParams.Environment = {
-          Variables: updates.environment
-        };
-      }
-
-      const command = new UpdateFunctionConfigurationCommand(updateParams);
-      const response = await this.lambdaClient.send(command);
-
-      return {
-        success: true,
-        resources: [{
-          type: 'Lambda::Function',
-          name: functionName,
-          arn: response.FunctionArn,
-          status: 'Updated',
-          properties: {
-            memory: response.MemorySize,
-            timeout: response.Timeout
-          }
-        }]
-      };
-
-    } catch (error) {
-      console.error('Failed to update Lambda function:', error);
+      console.error('Lambda function creation failed:', error);
       return {
         success: false,
         resources: [],
-        errors: [`Update failed: ${error}`]
+        errors: [error instanceof Error ? error.message : 'Unknown error']
       };
     }
   }
 
-  /**
-   * List Lambda functions
-   */
+  async createS3Bucket(
+    bucketName: string,
+    qIdentity: QIdentity,
+    options: {
+      purpose?: string;
+      environment?: string;
+      enableVersioning?: boolean;
+      enableEncryption?: boolean;
+    } = {}
+  ): Promise<AWSOperationResult> {
+    try {
+      console.log(`🏗️ Creating S3 bucket with SAM: ${bucketName}`);
+      
+      const result = await this.samManager.deployS3Bucket(
+        bucketName,
+        options.purpose || 'General storage bucket',
+        qIdentity,
+        {
+          environment: options.environment,
+          enableVersioning: options.enableVersioning,
+          enableEncryption: options.enableEncryption
+        }
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          resources: [],
+          errors: [result.error || 'SAM deployment failed']
+        };
+      }
+
+      // Convert SAM resources to our format
+      const resources: AWSResource[] = result.resources?.map(resource => ({
+        type: resource.type,
+        name: resource.name,
+        arn: resource.arn,
+        status: resource.status,
+        properties: {
+          versioning: options.enableVersioning,
+          encryption: options.enableEncryption !== false,
+          purpose: options.purpose
+        }
+      })) || [];
+
+      return {
+        success: true,
+        resources,
+        metadata: {
+          stackName: result.stackName,
+          outputs: result.outputs,
+          deploymentMethod: 'SAM'
+        }
+      };
+
+    } catch (error) {
+      console.error('S3 bucket creation failed:', error);
+      return {
+        success: false,
+        resources: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
   async listLambdaFunctions(): Promise<AWSResource[]> {
     try {
-      const command = new ListFunctionsCommand({});
-      const response = await this.lambdaClient.send(command);
+      // List Q-managed stacks instead of individual functions
+      const stacks = await this.samManager.listQStacks();
+      
+      const lambdaStacks = stacks.filter(stack => 
+        stack.stackName.includes('lambda') || 
+        stack.description?.toLowerCase().includes('lambda')
+      );
 
-      return (response.Functions || []).map(func => ({
-        type: 'Lambda::Function',
-        name: func.FunctionName || '',
-        arn: func.FunctionArn,
-        status: func.State || 'Unknown',
+      return lambdaStacks.map(stack => ({
+        type: 'CloudFormation::Stack',
+        name: stack.stackName,
+        status: stack.status,
         properties: {
-          runtime: func.Runtime,
-          memory: func.MemorySize,
-          timeout: func.Timeout,
-          lastModified: func.LastModified
+          creationTime: stack.creationTime,
+          description: stack.description,
+          managedBy: 'SAM'
         }
       }));
 
@@ -290,202 +180,56 @@ export class AWSServiceManager {
     }
   }
 
-  /**
-   * Create S3 bucket
-   */
-  async createS3Bucket(
-    bucketName: string,
-    qIdentity: QIdentity
-  ): Promise<AWSOperationResult> {
+  async listS3Buckets(): Promise<AWSResource[]> {
     try {
-      const accountId = await this.getAccountId();
-      const fullBucketName = `${bucketName}-${accountId}-${this.region}`;
+      // List Q-managed stacks instead of individual buckets
+      const stacks = await this.samManager.listQStacks();
+      
+      const bucketStacks = stacks.filter(stack => 
+        stack.stackName.includes('s3') || 
+        stack.stackName.includes('bucket') ||
+        stack.description?.toLowerCase().includes('bucket')
+      );
 
-      const createCommand = new CreateBucketCommand({
-        Bucket: fullBucketName,
-        CreateBucketConfiguration: this.region !== 'us-east-1' ? {
-          LocationConstraint: this.region as any
-        } : undefined
-      });
-
-      await this.s3Client.send(createCommand);
-
-      // Apply basic bucket policy
-      const bucketPolicy = {
-        Version: '2012-10-17',
-        Statement: [{
-          Sid: 'NoWingQAccess',
-          Effect: 'Allow',
-          Principal: {
-            AWS: `arn:aws:iam::${accountId}:role/NoWingQ*`
-          },
-          Action: [
-            's3:GetObject',
-            's3:PutObject',
-            's3:DeleteObject'
-          ],
-          Resource: `arn:aws:s3:::${fullBucketName}/*`
-        }]
-      };
-
-      const policyCommand = new PutBucketPolicyCommand({
-        Bucket: fullBucketName,
-        Policy: JSON.stringify(bucketPolicy)
-      });
-
-      await this.s3Client.send(policyCommand);
-
-      return {
-        success: true,
-        resources: [{
-          type: 'S3::Bucket',
-          name: fullBucketName,
-          arn: `arn:aws:s3:::${fullBucketName}`,
-          status: 'Created',
-          properties: {
-            region: this.region,
-            createdBy: `Q-${qIdentity.id}`
-          }
-        }]
-      };
-
-    } catch (error) {
-      console.error('Failed to create S3 bucket:', error);
-      return {
-        success: false,
-        resources: [],
-        errors: [`S3 bucket creation failed: ${error}`]
-      };
-    }
-  }
-
-  /**
-   * Create IAM role for Lambda execution
-   */
-  private async createLambdaExecutionRole(
-    roleName: string,
-    qIdentity: QIdentity
-  ): Promise<string> {
-    const accountId = await this.getAccountId();
-    
-    const assumeRolePolicy = {
-      Version: '2012-10-17',
-      Statement: [{
-        Effect: 'Allow',
-        Principal: {
-          Service: 'lambda.amazonaws.com'
-        },
-        Action: 'sts:AssumeRole'
-      }]
-    };
-
-    const createRoleCommand = new CreateRoleCommand({
-      RoleName: roleName,
-      AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
-      Description: `Lambda execution role created by Q-${qIdentity.id}`,
-      Tags: [{
-        Key: 'CreatedBy',
-        Value: `Q-${qIdentity.id}`
-      }, {
-        Key: 'NoWingComponent',
-        Value: 'q-created-role'
-      }]
-    });
-
-    const roleResponse = await this.iamClient.send(createRoleCommand);
-
-    // Attach basic Lambda execution policy
-    const attachPolicyCommand = new AttachRolePolicyCommand({
-      RoleName: roleName,
-      PolicyArn: 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-    });
-
-    await this.iamClient.send(attachPolicyCommand);
-
-    // Wait for IAM role propagation
-    console.log('⏳ Waiting for IAM role propagation...');
-    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
-
-    return roleResponse.Role?.Arn || '';
-  }
-
-  /**
-   * Create CloudWatch Log Group
-   */
-  private async createLogGroup(logGroupName: string): Promise<void> {
-    try {
-      const command = new CreateLogGroupCommand({
-        logGroupName,
-        tags: {
-          'NoWingComponent': 'q-created-logs',
-          'CreatedBy': 'Q-Agent'
+      return bucketStacks.map(stack => ({
+        type: 'CloudFormation::Stack',
+        name: stack.stackName,
+        status: stack.status,
+        properties: {
+          creationTime: stack.creationTime,
+          description: stack.description,
+          managedBy: 'SAM'
         }
-      });
+      }));
 
-      await this.logsClient.send(command);
-    } catch (error: any) {
-      // Ignore if log group already exists
-      if (error.name !== 'ResourceAlreadyExistsException') {
-        throw error;
-      }
-    }
-  }
-
-  /**
-   * Generate basic Lambda function code
-   */
-  private generateBasicLambdaCode(functionName: string, description: string): string {
-    return `
-// ${functionName}
-// ${description}
-// Created by no-wing Q Agent
-
-exports.handler = async (event, context) => {
-    console.log('Event:', JSON.stringify(event, null, 2));
-    
-    try {
-        // Basic function logic
-        const response = {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Created-By': 'no-wing-q-agent'
-            },
-            body: JSON.stringify({
-                message: 'Function created successfully by Q',
-                functionName: '${functionName}',
-                timestamp: new Date().toISOString(),
-                event: event
-            })
-        };
-        
-        return response;
-        
     } catch (error) {
-        console.error('Error:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                error: 'Internal server error',
-                message: error.message
-            })
-        };
+      console.error('Failed to list S3 buckets:', error);
+      return [];
     }
-};
-`.trim();
   }
 
-  /**
-   * Create deployment package (ZIP) for Lambda
-   */
-  private async createDeploymentPackage(code: string): Promise<Buffer> {
-    // For now, create a simple ZIP with just the index.js file
-    // In production, you might want to use a proper ZIP library
-    const JSZip = require('jszip');
-    const zip = new JSZip();
-    
-    zip.file('index.js', code);
-    
-    return await zip.generateAsync({ type: 'nodebuffer' });
+  async deleteStack(stackName: string): Promise<boolean> {
+    try {
+      return await this.samManager.deleteStack(stackName);
+    } catch (error) {
+      console.error('Failed to delete stack:', error);
+      return false;
+    }
+  }
+
+  async getAccountId(): Promise<string> {
+    if (this.accountId) {
+      return this.accountId;
+    }
+
+    try {
+      // This would use STS in a real implementation
+      // For now, return a placeholder
+      this.accountId = process.env.AWS_ACCOUNT_ID || '123456789012';
+      return this.accountId;
+    } catch (error) {
+      console.warn('Could not get AWS account ID');
+      return '123456789012';
+    }
   }
 }
