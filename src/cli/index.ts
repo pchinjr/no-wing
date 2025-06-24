@@ -20,7 +20,6 @@ program
   .command('init')
   .description('Initialize a new developer + Q pairing with AWS resources')
   .option('--name <n>', 'Developer name')
-  .option('--repo <repo>', 'GitHub repository (owner/repo)')
   .option('--env <env>', 'Environment (dev, staging, prod)', 'dev')
   .option('--region <region>', 'AWS region', 'us-east-1')
   .action(initCommand);

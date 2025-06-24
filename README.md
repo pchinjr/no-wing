@@ -38,8 +38,8 @@ no-wing q-task "optimize function memory settings"
 # Check Q's status and capabilities
 no-wing q-status
 
-# Initialize new project (coming soon)
-no-wing init --name=YourName --repo=owner/repo
+# Initialize new project
+no-wing init --name=YourName --env=dev --region=us-east-1
 ```
 
 ## How Q Works

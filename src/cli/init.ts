@@ -10,7 +10,6 @@ import { QGitIdentityManager } from '../q/git-identity';
 
 interface InitOptions {
   name?: string;
-  repo?: string;
   env?: string;
   region?: string;
 }
@@ -51,20 +50,28 @@ async function collectConfig(options: InitOptions) {
     questions.push({
       type: 'input',
       name: 'name',
-      message: 'What\'s your name?',
-      validate: (input: string) => input.length > 0 || 'Name is required'
+      message: 'What is your name?',
+      default: 'Developer'
     });
   }
 
-  if (!options.repo) {
+  if (!options.env) {
     questions.push({
-      type: 'input',
-      name: 'repo',
-      message: 'GitHub repository (owner/repo):',
-      validate: (input: string) => {
-        const repoPattern = /^[\w\-\.]+\/[\w\-\.]+$/;
-        return repoPattern.test(input) || 'Please enter a valid repo format (owner/repo)';
-      }
+      type: 'list',
+      name: 'env',
+      message: 'Which environment?',
+      choices: ['dev', 'staging', 'prod'],
+      default: 'dev'
+    });
+  }
+
+  if (!options.region) {
+    questions.push({
+      type: 'list',
+      name: 'region',
+      message: 'Which AWS region?',
+      choices: ['us-east-1', 'us-west-2', 'eu-west-1'],
+      default: 'us-east-1'
     });
   }
 
@@ -72,104 +79,64 @@ async function collectConfig(options: InitOptions) {
   
   return {
     name: options.name || answers.name,
-    repo: options.repo || answers.repo,
-    env: options.env || 'dev',
-    region: options.region || 'us-east-1'
+    env: options.env || answers.env,
+    region: options.region || answers.region
   };
 }
 
 async function runOnboardingSteps(orchestrator: OnboardingOrchestrator, qDialogue: QDialogue) {
   const steps = [
-    { name: 'Creating Q\'s identity and capabilities', fn: () => createQIdentity() },
-    { name: 'Creating IAM roles for you and Q', fn: () => orchestrator.createRoles() },
-    { name: 'Setting up AWS credentials', fn: () => orchestrator.setupCredentials() },
-    { name: 'Authenticating Q as your teammate', fn: () => orchestrator.authenticateQ() },
-    { name: 'Bootstrapping GitHub Actions', fn: () => orchestrator.setupGitHub() },
-    { name: 'Configuring deployment pipeline', fn: () => orchestrator.setupPipeline() }
+    {
+      name: 'Creating Q\'s identity and capabilities',
+      action: () => orchestrator.createQIdentity()
+    },
+    {
+      name: 'Creating IAM roles for you and Q',
+      action: () => orchestrator.createIAMRoles()
+    },
+    {
+      name: 'Setting up AWS credentials',
+      action: () => orchestrator.setupAWSCredentials()
+    },
+    {
+      name: 'Authenticating Q as your teammate',
+      action: () => orchestrator.authenticateQ()
+    }
   ];
 
   for (const step of steps) {
     const spinner = ora(step.name).start();
     
     try {
-      await step.fn();
-      spinner.succeed(chalk.green(step.name));
-      qDialogue.stepComplete(step.name);
+      await step.action();
+      spinner.succeed();
+      qDialogue.encourageProgress();
     } catch (error) {
-      spinner.fail(chalk.red(`Failed: ${step.name}`));
+      spinner.fail(`Failed: ${step.name}`);
       throw error;
     }
   }
 }
 
-async function createQIdentity() {
-  const identityManager = new QIdentityManager();
-  
-  // Check if Q already exists
-  const existingIdentity = await identityManager.loadIdentity();
-  if (existingIdentity) {
-    console.log(chalk.yellow('Q identity already exists, skipping creation'));
-    return existingIdentity;
-  }
-  
-  // Create new Q identity
-  const identity = await identityManager.createIdentity('Q');
-  console.log(chalk.green(`Created Q identity: ${identity.id}`));
-  console.log(chalk.cyan(`Q starts at ${identity.level.toUpperCase()} level with ${identity.permissions.length} permissions`));
-  
-  // Set up Q's Git identity
-  const gitManager = new QGitIdentityManager(identity);
-  await gitManager.setupQGitIdentity();
-  
-  // Restore human Git identity after setup
-  await gitManager.restoreHumanGitIdentity();
-  
-  console.log(chalk.green('✅ Q\'s Git identity configured for future commits'));
-  
-  return identity;
-}
-
 async function createLocalEnvironment(config: any) {
-  const spinner = ora('Creating local environment files').start();
-  
-  try {
-    // Create .env file
-    const envContent = `
-# no-wing generated environment
-PROJECT_NAME=${config.name}
-GITHUB_REPO=${config.repo}
-AWS_REGION=${config.region}
-ENVIRONMENT=${config.env}
-
-# Q Configuration
-Q_ROLE_ARN=arn:aws:iam::ACCOUNT:role/QRole-${config.name}
-Q_CAPABILITIES_LEVEL=1
-
-# Generated on ${new Date().toISOString()}
-`.trim();
-
-    writeFileSync('.env', envContent);
-    
-    // Create .no-wing directory for metadata
-    if (!existsSync('.no-wing')) {
-      mkdirSync('.no-wing');
-    }
-    
-    const metadataContent = {
-      version: '0.1.0',
-      created: new Date().toISOString(),
-      developer: config.name,
-      repo: config.repo,
-      environment: config.env,
-      region: config.region,
-      qCapabilities: 1
-    };
-    
-    writeFileSync('.no-wing/metadata.json', JSON.stringify(metadataContent, null, 2));
-    
-    spinner.succeed('Local environment configured');
-  } catch (error) {
-    spinner.fail('Failed to create local environment');
-    throw error;
+  // Create .no-wing directory
+  const noWingDir = './.no-wing';
+  if (!existsSync(noWingDir)) {
+    mkdirSync(noWingDir, { recursive: true });
   }
+
+  // Create local config
+  const localConfig = {
+    name: config.name,
+    env: config.env,
+    region: config.region,
+    createdAt: new Date().toISOString()
+  };
+
+  writeFileSync(
+    join(noWingDir, 'config.json'),
+    JSON.stringify(localConfig, null, 2)
+  );
+
+  console.log(chalk.green('\n✅ Local environment configured'));
 }

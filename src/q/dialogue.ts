@@ -28,6 +28,10 @@ export class QDialogue {
     console.log(chalk.cyan(`🤖 Q: ${randomResponse}`));
   }
 
+  encourageProgress(): void {
+    this.stepComplete('Step');
+  }
+
   celebrate(): void {
     console.log(chalk.green.bold(`
 🎉 Onboarding Complete!

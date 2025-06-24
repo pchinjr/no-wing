@@ -1,106 +1,102 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { OnboardingOrchestrator } from './orchestrator';
 
 export const handler = async (
-  event: APIGatewayProxyEvent
+  event: APIGatewayProxyEvent,
+  context: Context
 ): Promise<APIGatewayProxyResult> => {
-  
+  console.log('no-wing Lambda handler invoked');
+  console.log('Event:', JSON.stringify(event, null, 2));
+
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
   };
 
   try {
-    const { httpMethod, path, body } = event;
-    
-    // Handle preflight requests
-    if (httpMethod === 'OPTIONS') {
+    // Handle different HTTP methods
+    if (event.httpMethod === 'OPTIONS') {
       return {
         statusCode: 200,
         headers,
-        body: ''
+        body: JSON.stringify({ message: 'CORS preflight' })
       };
     }
 
-    // Parse request body
-    const requestBody = body ? JSON.parse(body) : {};
-    
-    // Route requests based on path
-    switch (path) {
-      case '/onboard':
-        return await handleOnboarding(requestBody, headers);
-      
-      case '/health':
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            status: 'healthy',
-            message: '🤖 Q: Control plane is operational!',
-            timestamp: new Date().toISOString()
-          })
-        };
-      
-      default:
-        return {
-          statusCode: 404,
-          headers,
-          body: JSON.stringify({
-            error: 'Not Found',
-            message: `Path ${path} not found`
-          })
-        };
+    if (event.httpMethod === 'GET') {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          message: 'no-wing is running',
+          timestamp: new Date().toISOString(),
+          version: '1.0.0'
+        })
+      };
     }
-    
+
+    if (event.httpMethod === 'POST') {
+      return await handlePostRequest(event, headers);
+    }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+
   } catch (error) {
     console.error('Lambda error:', error);
-    
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Internal Server Error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        qMessage: '🤖 Q: Something went wrong, but I\'m learning from this error!'
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
       })
     };
   }
 };
 
-async function handleOnboarding(
-  requestBody: any, 
+async function handlePostRequest(
+  event: APIGatewayProxyEvent,
   headers: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
-  
-  const { name, repo, env = 'dev', region = 'us-east-1', step } = requestBody;
-  
-  if (!name || !repo) {
+  const body = event.body ? JSON.parse(event.body) : {};
+  const { action, name, env = 'dev', region = 'us-east-1' } = body;
+
+  if (!name) {
     return {
       statusCode: 400,
       headers,
       body: JSON.stringify({
-        error: 'Bad Request',
-        message: 'Name and repo are required',
-        qMessage: '🤖 Q: I need your name and repo to get us both set up!'
+        error: 'Bad request',
+        message: 'Name is required',
+        qMessage: '🤖 Q: I need your name to get us both set up!'
       })
     };
   }
 
-  const orchestrator = new OnboardingOrchestrator({ name, repo, env, region });
+  const orchestrator = new OnboardingOrchestrator({ name, env, region });
   
   try {
     let result;
     
-    switch (step) {
+    switch (action) {
+      case 'create-q-identity':
+        await orchestrator.createQIdentity();
+        result = { message: 'Q identity created successfully' };
+        break;
+        
       case 'create-roles':
-        await orchestrator.createRoles();
+        await orchestrator.createIAMRoles();
         result = { message: 'IAM roles created successfully' };
         break;
         
       case 'setup-credentials':
-        await orchestrator.setupCredentials();
+        await orchestrator.setupAWSCredentials();
         result = { message: 'Credentials configured successfully' };
         break;
         
@@ -109,54 +105,41 @@ async function handleOnboarding(
         result = { message: 'Q authenticated successfully' };
         break;
         
-      case 'setup-github':
-        await orchestrator.setupGitHub();
-        result = { message: 'GitHub integration configured successfully' };
-        break;
-        
-      case 'setup-pipeline':
-        await orchestrator.setupPipeline();
-        result = { message: 'Deployment pipeline configured successfully' };
-        break;
-        
       default:
         // Run all steps
-        await orchestrator.createRoles();
-        await orchestrator.setupCredentials();
+        await orchestrator.createQIdentity();
+        await orchestrator.createIAMRoles();
+        await orchestrator.setupAWSCredentials();
         await orchestrator.authenticateQ();
-        await orchestrator.setupGitHub();
-        await orchestrator.setupPipeline();
         
         result = { 
-          message: 'Complete onboarding successful',
-          qMessage: `🤖 Q: Welcome ${name}! We're now officially teammates. Let's build something amazing together!`
+          message: 'no-wing onboarding completed successfully',
+          qMessage: '🤖 Q: We\'re all set up! I\'m ready to be your development teammate.',
+          steps: [
+            'Q identity created',
+            'IAM roles configured', 
+            'AWS credentials set up',
+            'Q authenticated'
+          ]
         };
+        break;
     }
-    
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        success: true,
-        ...result,
-        developer: name,
-        repo,
-        environment: env,
-        timestamp: new Date().toISOString()
-      })
+      body: JSON.stringify(result)
     };
-    
+
   } catch (error) {
-    console.error('Onboarding error:', error);
-    
+    console.error('Orchestrator error:', error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Onboarding Failed',
+        error: 'Orchestration failed',
         message: error instanceof Error ? error.message : 'Unknown error',
-        qMessage: '🤖 Q: The onboarding hit a snag, but I\'m analyzing the issue to help fix it!',
-        step
+        qMessage: '🤖 Q: Something went wrong, but we can troubleshoot this together!'
       })
     };
   }
