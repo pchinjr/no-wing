@@ -6,6 +6,20 @@
   "bin": {
     "no-wing": "./dist/cli/index.js"
   },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/cli/index.ts",
+    "start": "node dist/cli/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest --testPathPattern=unit",
+    "lint": "echo 'Linting not configured yet'",
+    "clean": "rm -rf dist coverage .no-wing",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "release": "./scripts/release.sh",
+    "verify": "./scripts/verify-install.sh"
+  },
   "keywords": [
     "ai",
     "aws",
@@ -15,7 +29,10 @@
     "infrastructure",
     "collaboration",
     "devops",
-    "serverless"
+    "serverless",
+    "sam",
+    "cloudformation",
+    "iac"
   ],
   "author": "Paul Chin Jr <pchinjr@gmail.com>",
   "license": "MIT",
@@ -27,34 +44,18 @@
   "bugs": {
     "url": "https://github.com/pchinjr/no-wing/issues"
   },
-  "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/cli/index.ts",
-    "start": "node dist/cli/index.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathPattern=unit",
-    "test:integration": "jest --testPathPattern=integration",
-    "validate-docs": "./scripts/validate-docs.sh",
-    "deploy:dev": "./deploy.sh dev",
-    "deploy:staging": "./deploy.sh staging",
-    "deploy:prod": "./deploy.sh prod",
-    "sam:build": "sam build",
-    "sam:local": "sam local start-api",
-    "sam:logs": "sam logs --tail",
-    "deploy": "npm run build && aws lambda update-function-code --function-name no-wing-control-plane --zip-file fileb://dist.zip"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
-  "keywords": [
-    "aws",
-    "onboarding",
-    "ai",
-    "q",
-    "developer",
-    "automation"
+  "files": [
+    "dist/",
+    "templates/",
+    "scripts/",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
   ],
-  "author": "Paul Chin Jr",
-  "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",
     "@aws-sdk/client-ssm": "^3.0.0",
@@ -78,5 +79,13 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.0.0",
     "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "aws-cli": "*"
+  },
+  "peerDependenciesMeta": {
+    "aws-cli": {
+      "optional": true
+    }
   }
 }
