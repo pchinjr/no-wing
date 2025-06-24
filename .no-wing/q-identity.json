@@ -3,7 +3,7 @@
   "name": "Q",
   "level": "partner",
   "createdAt": "2025-06-23T23:21:36.060Z",
-  "lastActive": "2025-06-24T01:18:56.044Z",
+  "lastActive": "2025-06-24T15:54:30.623Z",
   "successfulTasks": 14,
   "failedTasks": 0,
   "permissions": [
@@ -28,5 +28,6 @@
     "cloudformation:CreateStack",
     "cloudformation:UpdateStack",
     "cloudformation:DeleteStack"
-  ]
+  ],
+  "sessionExpiry": "2025-06-25T15:54:30.623Z"
 }

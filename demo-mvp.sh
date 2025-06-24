@@ -8,10 +8,10 @@ set -e
 echo "🛫 no-wing MVP Happy Path Demo"
 echo "========================================"
 echo ""
-echo "This demo shows Q's progression through capability levels:"
-echo "• Observer Level: Read and analyze"
-echo "• Assistant Level: Update and modify" 
-echo "• Partner Level: Create and design"
+echo "This demo shows Q's core capabilities:"
+echo "• Q creates real AWS Lambda functions"
+echo "• Q commits to Git as proper AI developer"
+echo "• Q has progressive permissions and security"
 echo ""
 echo "Press Enter to start the demo..."
 read
@@ -21,13 +21,80 @@ echo "📦 Building no-wing..."
 npm run build
 echo ""
 
-# Step 1: Initialize Q
-echo "🚀 Step 1: Initialize Developer + Q Pairing"
+# Step 1: Check Q Status
+echo "🚀 Step 1: Check Q's Current Status"
+echo "===================================="
+echo ""
+echo "$ no-wing q-status"
+echo ""
+npm run dev -- q-status
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 2: Q Analysis Task (Observer Level)
+echo "🔍 Step 2: Q Analysis Task (Observer Level)"
 echo "============================================"
 echo ""
-echo "$ no-wing init --name=DemoUser --repo=demo/project"
+echo "$ no-wing q-task \"analyze current Lambda functions\""
 echo ""
-npm run dev -- init --name=DemoUser --repo=demo/project
+npm run dev -- q-task "analyze current Lambda functions"
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 3: Q Creation Task (Partner Level)
+echo "🏗️ Step 3: Q Creation Task (Partner Level)"
+echo "==========================================="
+echo ""
+echo "$ no-wing q-task \"create a Lambda function for user authentication\""
+echo ""
+npm run dev -- q-task "create a Lambda function for user authentication"
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 4: Verify Q's Work in AWS
+echo "✅ Step 4: Verify Q's Work in AWS"
+echo "=================================="
+echo ""
+echo "$ aws lambda list-functions --query 'Functions[?starts_with(FunctionName, \`q-\`)]'"
+echo ""
+aws lambda list-functions --query 'Functions[?starts_with(FunctionName, `q-`)]' || echo "⚠️  AWS CLI not configured or no Q functions found"
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 5: Check Q's Git Commits
+echo "📝 Step 5: Check Q's Git Commits"
+echo "================================="
+echo ""
+echo "$ git log --oneline -5 --author=\"Q (AI Agent\""
+echo ""
+git log --oneline -5 --author="Q (AI Agent" || echo "ℹ️  No Q commits found yet"
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Step 6: Q Status After Tasks
+echo "📊 Step 6: Q's Updated Status"
+echo "=============================="
+echo ""
+echo "$ no-wing q-status"
+echo ""
+npm run dev -- q-status
+echo ""
+
+echo "🎉 Demo Complete!"
+echo "================="
+echo ""
+echo "✅ What we demonstrated:"
+echo "   • Q analyzed existing AWS infrastructure"
+echo "   • Q created a real Lambda function with IAM role"
+echo "   • Q committed work to Git as proper AI developer"
+echo "   • Q operates within security boundaries"
+echo ""
+echo "🛫 Q is ready to be your autonomous AWS development teammate!"
 echo ""
 echo "✅ Q has been created with Observer level capabilities!"
 echo ""
