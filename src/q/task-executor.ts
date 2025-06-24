@@ -17,6 +17,9 @@ export interface QTaskResult {
   awsResources?: any[];
   gitCommit?: string;
   timestamp: string;
+  error?: string;
+  suggestion?: string;
+  generatedProject?: any;
 }
 
 export class QTaskExecutor {
