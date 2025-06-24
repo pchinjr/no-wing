@@ -36,15 +36,15 @@ npm run build >/dev/null 2>&1
 echo "✅ Build complete"
 echo ""
 
-echo "🏭 Step 1: Admin provisions developer+Q pair"
-echo "============================================="
+echo "🏭 Step 1: Admin provisions SENIOR developer+Q pair (Partner level)"
+echo "=================================================================="
 echo ""
 
-# Provision developer+Q pair
-echo "Provisioning developer+Q pair for hackathon demo..."
+# Provision SENIOR developer+Q pair (gets Partner level Q)
+echo "Provisioning SENIOR developer+Q pair for hackathon demo..."
 PROVISION_OUTPUT=$(npm run start -- admin provision-developer \
   --email demo@hackathon.com \
-  --role partner \
+  --role senior \
   --team hackathon \
   --projects lambda-demo,api-demo \
   --budget 100 2>/dev/null)
@@ -54,10 +54,12 @@ TOKEN=$(echo "$PROVISION_OUTPUT" | grep -A1 "Send this onboarding token" | tail 
 
 if [ -z "$TOKEN" ]; then
     echo "❌ Failed to extract onboarding token"
+    echo "Debug output:"
+    echo "$PROVISION_OUTPUT"
     exit 1
 fi
 
-echo "✅ Developer+Q pair provisioned"
+echo "✅ Senior developer+Q pair provisioned (Q has Partner-level capabilities)"
 echo "🎫 Onboarding token: $TOKEN"
 echo ""
 
@@ -75,11 +77,22 @@ echo "🤖 Step 3: Q creates REAL AWS Lambda functions"
 echo "=============================================="
 echo ""
 
-echo "Creating Lambda function for user authentication..."
+echo "Q will now create a Lambda function for user authentication..."
+echo "This will deploy REAL AWS resources to your account!"
 echo ""
 
-# Create Lambda function via chat
-echo "create a Lambda function for user authentication" | npm run start -- chat
+# Create a temporary input file for the chat
+cat > /tmp/q_input.txt << EOF
+create a Lambda function for user authentication
+exit
+EOF
+
+# Create Lambda function via chat with input file
+echo "🚀 Executing Q task..."
+npm run start -- chat < /tmp/q_input.txt
+
+# Clean up temp file
+rm -f /tmp/q_input.txt
 
 echo ""
 echo "🎉 Hackathon Demo Complete!"

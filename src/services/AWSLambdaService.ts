@@ -423,8 +423,9 @@ exports.handler = async (event, context) => {
       
       console.log(`✅ Created IAM role: ${roleName}`);
       
-      // Wait a bit for role to propagate
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer for role to propagate (AWS can be slow)
+      console.log('⏳ Waiting for IAM role to propagate...');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
       
       return { arn: role.Role!.Arn! };
     }

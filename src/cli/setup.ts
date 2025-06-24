@@ -100,14 +100,14 @@ async function validateAndGetSetupInfo(token: string): Promise<SetupInfo> {
     };
   }
 
-  // Simulate successful validation
+  // Simulate successful validation with Partner level for senior developers
   return {
     valid: true,
-    developerId: 'dev-sarah-123456',
-    qId: 'q-sarah-123456-abc123',
-    qLevel: 'observer',
-    humanIAMRole: 'no-wing-developer-dev-sarah-123456',
-    qIAMRole: 'no-wing-q-q-sarah-123456-abc123',
+    developerId: 'dev-hackathon-123456',
+    qId: 'q-hackathon-123456-abc123',
+    qLevel: 'partner', // Partner level for hackathon demo
+    humanIAMRole: 'no-wing-developer-dev-hackathon-123456',
+    qIAMRole: 'no-wing-q-q-hackathon-123456-abc123',
     region: 'us-east-1'
   };
 }

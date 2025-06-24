@@ -97,11 +97,13 @@ export class VendingService {
     let initialLevel: QCapabilityLevel;
     switch (request.role) {
       case 'senior':
-        initialLevel = QCapabilityLevel.ASSISTANT;
+        initialLevel = QCapabilityLevel.PARTNER; // Senior devs get Partner-level Q for hackathon
         break;
       case 'junior':
+        initialLevel = QCapabilityLevel.ASSISTANT; // Junior devs get Assistant-level Q
+        break;
       case 'intern':
-        initialLevel = QCapabilityLevel.OBSERVER;
+        initialLevel = QCapabilityLevel.OBSERVER; // Interns get Observer-level Q
         break;
       case 'contractor':
         initialLevel = QCapabilityLevel.OBSERVER; // Start conservative for contractors
