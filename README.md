@@ -1,143 +1,164 @@
 # 🛫 no-wing
 
-**Enterprise Developer+Q Vending and Onboarding System**
+**Enterprise Developer+Q Vending System for AWS Lambda Hackathon**
 
-Provision new developers with their own AI assistant (Q) while maintaining proper IAM governance and monitoring.
+Provision developers with AI assistants (Q) that create real AWS Lambda functions while maintaining enterprise governance.
 
-## Why no-wing?
+## 🏆 AWS Lambda Hackathon Entry
 
-- **Vend developer+Q pairs** with appropriate IAM roles and boundaries
-- **Monitor Q activities** in real-time with compliance reporting
-- **Onboard developers faster** with AI assistance from day one
-- **Maintain security** with permission boundaries and audit trails
-- **Scale AI adoption** across your organization safely
+### **Problem Solved**
+Enterprise developer onboarding is slow and expensive. New developers need weeks to become productive with AWS Lambda development.
 
-## Architecture
+### **Solution**
+**no-wing** vends developer+Q pairs where Q is an AI assistant that:
+- Creates **real AWS Lambda functions** with working code
+- Sets up **API Gateway triggers** automatically  
+- Maintains **enterprise IAM governance**
+- Provides **real-time monitoring** and compliance
 
-```
-Organization Admin
-    ↓ (provisions)
-no-wing Vending System
-    ↓ (creates)
-Developer + Q Pair
-    ↓ (monitored activities)
-AWS Infrastructure
-```
-
-## Quick Start
-
-### For Administrators
+## 🚀 Quick Demo
 
 ```bash
-# Install no-wing admin tools
-npm install -g no-wing
+# 1. Admin provisions developer+Q pair
+npm run demo
 
-# Provision a new developer+Q pair
+# 2. Q creates REAL Lambda function
+no-wing chat
+> "create a Lambda function for user authentication"
+# → Deploys actual Lambda + API Gateway to AWS!
+```
+
+## 🏗️ Architecture
+
+```
+Admin → Provisions → Developer+Q Pair → Creates → Real AWS Lambda Functions
+                         ↓
+                   Monitored & Governed
+```
+
+### **Core Components:**
+- **VendingService**: Provisions developer+Q pairs with IAM
+- **AWSLambdaService**: Creates real Lambda functions with API Gateway
+- **MonitoringService**: Tracks Q activities for compliance
+- **IAMService**: Manages roles and permission boundaries
+
+## 🔐 Enterprise Security
+
+### **IAM Separation:**
+- **Human developers** get project-specific AWS permissions
+- **Q agents** get limited, monitored Lambda creation permissions
+- **Permission boundaries** prevent privilege escalation
+- **Progressive capabilities**: Observer → Assistant → Partner
+
+### **Real-Time Monitoring:**
+- All Q activities logged and tracked
+- Cost monitoring with budget alerts
+- Anomaly detection for unusual behavior
+- Compliance reporting for audits
+
+## 🎯 Hackathon Requirements Met
+
+✅ **AWS Lambda as core service** - Q creates real Lambda functions  
+✅ **Lambda triggers** - API Gateway integration  
+✅ **Real-world business problem** - Enterprise developer onboarding  
+✅ **Multiple AWS services** - Lambda, IAM, API Gateway, CloudWatch  
+
+## 🛠️ Installation
+
+```bash
+git clone https://github.com/pchinjr/no-wing.git
+cd no-wing
+npm install
+npm run build
+```
+
+## 📋 Prerequisites
+
+- Node.js 18+
+- AWS CLI configured with credentials
+- Permissions for Lambda, IAM, and API Gateway
+
+## 🎬 Usage
+
+### **Admin: Provision Developer+Q Pair**
+```bash
 no-wing admin provision-developer \
   --email sarah@company.com \
   --role junior \
   --team backend \
-  --projects user-service,payment-api
-
-# Monitor Q activities
-no-wing admin dashboard
-no-wing admin monitor q-sarah-123
+  --projects user-service
 ```
 
-### For Developers
-
+### **Developer: Onboard with Q**
 ```bash
-# Onboard with provided token
 no-wing setup --token <onboarding-token>
-
-# Start working with your Q assistant
 no-wing chat
-no-wing q-task "analyze the user-service architecture"
 ```
 
-## Core Components
-
-### 1. Vending Service
-- **Provisions IAM roles** for both developer and Q
-- **Sets up monitoring** and audit trails
-- **Configures permission boundaries** to prevent escalation
-- **Initializes Q** with appropriate capabilities
-
-### 2. IAM Management
-- **Human developer roles** with project-specific permissions
-- **Q agent roles** with limited, monitored AWS access
-- **Permission boundaries** that prevent privilege escalation
-- **Escalation workflows** for capability advancement
-
-### 3. Monitoring & Compliance
-- **Real-time activity logging** for all Q actions
-- **Anomaly detection** for unusual behavior
-- **Compliance reporting** for audit requirements
-- **Risk scoring** for Q activities
-
-### 4. Developer Experience
-- **Seamless onboarding** with pre-configured Q assistant
-- **Natural language interface** for AWS operations
-- **Company-aware Q** that learns organizational patterns
-- **Safe experimentation** within permission boundaries
-
-## Security Model
-
-### IAM Architecture
-```
-Organization Account
-├── Human Developer Role
-│   ├── Project-specific AWS permissions
-│   ├── Cannot assume Q roles
-│   └── Permission boundary prevents escalation
-│
-└── Q Agent Role
-    ├── Limited AWS actions (based on capability level)
-    ├── Cannot assume human roles
-    ├── All actions logged and monitored
-    └── Strict permission boundary
+### **Q: Create Real Lambda Functions**
+```bash
+> "create a Lambda function for user authentication"
+> "create an API endpoint for data processing"  
+> "list my Lambda functions"
+> "analyze my current functions"
 ```
 
-### Monitoring
-- **CloudTrail integration** for complete audit logs
-- **Real-time alerts** for risky Q behavior
-- **Cost tracking** per Q agent
-- **Compliance dashboards** for management
+## 🏆 What Makes This Special
 
-## Use Cases
+### **Real AWS Integration**
+- Creates actual Lambda functions (not simulations)
+- Generates working Node.js code
+- Sets up API Gateway endpoints
+- Proper IAM execution roles
 
-### New Developer Onboarding
-1. **Admin provisions** developer+Q pair with appropriate permissions
-2. **Developer receives** onboarding instructions and credentials
-3. **Q assists** with learning company infrastructure and patterns
-4. **Organization monitors** Q activities and developer progress
+### **Enterprise Ready**
+- Multi-tenant Q agent management
+- Proper security boundaries
+- Audit trails and compliance
+- Cost tracking and budgets
 
-### AI-Assisted Development
-1. **Developer works** with Q on daily tasks
-2. **Q suggests** company-approved patterns and solutions
-3. **Q creates resources** within permission boundaries
-4. **Activities logged** for compliance and learning
+### **AI-Powered Development**
+- Natural language Lambda creation
+- Company-aware Q assistants
+- Progressive capability earning
+- Safe experimentation environment
 
-### Capability Progression
-1. **Q starts** with Observer-level permissions
-2. **Q earns** more capabilities through successful tasks
-3. **Admin approves** permission escalations
-4. **Q becomes** more autonomous within safe boundaries
+## 🚀 Demo Script
 
-## Requirements
+Run the complete hackathon demo:
+```bash
+./demo-hackathon.sh
+```
 
-- **AWS Organization** with appropriate account structure
-- **IAM Identity Center** for SSO integration (optional)
-- **CloudTrail** enabled for audit logging
-- **Node.js 18+** for no-wing CLI tools
+This will:
+1. Provision a developer+Q pair
+2. Set up the developer environment  
+3. Have Q create a real Lambda function
+4. Show the deployed AWS resources
 
-## Documentation
+## 📊 Example Output
 
-- **[Admin Guide](docs/ADMIN.md)** - Setting up and managing the system
-- **[Developer Guide](docs/DEVELOPER.md)** - Using your Q assistant
-- **[Security Model](docs/SECURITY.md)** - IAM architecture and boundaries
-- **[Monitoring Guide](docs/MONITORING.md)** - Compliance and reporting
+```
+🤖 Q: 🎉 Successfully created Lambda function "q-auth-123456"!
+
+🏗️ AWS Resources Created:
+   • AWS::Lambda::Function: q-auth-123456
+     ARN: arn:aws:lambda:us-east-1:123456789012:function:q-auth-123456
+     🌐 Endpoint: https://abc123.execute-api.us-east-1.amazonaws.com/prod
+     ⏱️ Deployment time: 3247ms
+     💰 Estimated cost: $0.050
+```
+
+## 🎯 Business Value
+
+- **Faster onboarding**: Developers productive in hours, not weeks
+- **Consistent practices**: Q enforces company standards  
+- **Reduced mentoring**: Senior developers focus on architecture
+- **Audit compliance**: Complete activity tracking
+- **Cost control**: Budget limits and monitoring
 
 ---
 
-**Enterprise-grade AI assistant provisioning with proper governance.** 🛫
+**Enterprise-grade AI assistant provisioning with real AWS Lambda creation.** 🛫
+
+*Built for the AWS Lambda Hackathon - Transforming developer onboarding with AI.*
