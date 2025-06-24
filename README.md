@@ -1,21 +1,55 @@
 # 🛫 no-wing
 
-Autonomous developer onboarding that treats AI as a first-class teammate. Single command provisions AWS resources, GitHub Actions, and progressive AI capabilities.
+Autonomous AI developer that creates real AWS infrastructure. Q is your AI teammate with progressive capabilities and Git attribution.
 
 ## Quick Start
 
 ```bash
-npm install -g no-wing
-no-wing init --name=YourName --repo=owner/repo
-no-wing nothing  # Easter egg 🥚
+git clone https://github.com/pchinjr/no-wing
+cd no-wing && npm install && npm run build
+./deploy-minimal.sh dev your-email@company.com
+no-wing q-task "create a new Lambda function for user authentication"
 ```
 
 ## Features
 
-- **AI Teammate**: Q gets its own IAM role and progressive permissions
-- **One Command**: Sets up AWS resources, GitHub Actions, local environment
-- **Progressive AI**: Q earns capabilities through successful contributions
-- **Security First**: Scoped roles, audit trails, safeguards
+- **Real AWS Operations**: Q creates Lambda functions, IAM roles, CloudWatch logs
+- **Git Attribution**: Q commits as proper AI agent author
+- **Progressive AI**: Q advances from Observer → Assistant → Partner
+- **Security Boundaries**: Permission boundaries prevent privilege escalation
+
+## 🎯 Success Story
+
+**Q just created a real Lambda function!**
+
+```bash
+$ no-wing q-task "create a new Lambda function for user authentication"
+
+🤖 Q is analyzing task: "create a new Lambda function for user authentication"
+✅ Q has permission to perform this partner level task
+🏗️ Performing creation task...
+⏳ Waiting for IAM role propagation...
+✅ Q committed: 0ea495d9
+
+📋 Task Result:
+🔧 AWS Resources Created/Modified:
+  • IAM::Role: q-create-new-lambda-640284-role (Created)
+  • CloudWatchLogs::LogGroup: /aws/lambda/q-create-new-lambda-640284 (Created)  
+  • Lambda::Function: q-create-new-lambda-640284 (Created)
+
+📝 Q documented work in Git commit: 0ea495d9
+```
+
+**Git History:**
+```
+0ea495d Q (AI Agent) <q+q-1750720896060-rf367u1sa@no-wing.ai> feat: create a new Lambda function for user authentication
+```
+
+**AWS Console Verification:**
+- ✅ Function exists: `q-create-new-lambda-640284`
+- ✅ IAM role created: `q-create-new-lambda-640284-role`  
+- ✅ Proper tagging with Q attribution
+- ✅ CloudWatch logs configured
 
 ## Architecture
 
@@ -31,14 +65,24 @@ Developer + Q → IAM Roles → AWS Lambda Control Plane → GitHub Actions
 
 ## Commands
 
+### `no-wing q-task "<description>"`
+Execute tasks with Q's autonomous AWS operations.
+
+```bash
+no-wing q-task "analyze current Lambda functions"
+no-wing q-task "create a new Lambda function for user auth"
+no-wing q-task "optimize function memory settings"
+```
+
+### `no-wing q-status`
+View Q's current capabilities and performance.
+
 ### `no-wing init`
 Initialize developer + Q pairing with AWS resources.
 
 ```bash
 no-wing init --name=Paul --repo=pchinjr/my-project --env=dev --region=us-east-1
 ```
-
-Creates IAM roles, sets up AWS credentials, authenticates Q, bootstraps GitHub Actions, configures local environment.
 
 ### `no-wing nothing` 🥚
 Easter egg command with Game of Thrones reference.
@@ -49,18 +93,18 @@ Q starts as an **Observer** and can progress to become a full development **Part
 
 ### Level 1: Observer
 - Read deployment logs and configurations
-- Provide code suggestions and insights
+- Analyze Lambda functions and performance
 - Monitor function performance
-- Generate reports
+- Generate reports and recommendations
 
 ### Level 2: Assistant  
-- Deploy code changes
-- Update Lambda functions
-- Modify configuration files
+- Update Lambda function configurations
+- Modify environment variables and settings
+- Optimize memory and timeout settings
 - Create database entries
 
 ### Level 3: Partner
-- Create new AWS resources
+- **Create real AWS resources** (Lambda, IAM, CloudWatch)
 - Design and implement features
 - Manage IAM roles and policies
 - Lead development initiatives
