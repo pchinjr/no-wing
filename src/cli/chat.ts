@@ -237,49 +237,73 @@ function handleConversation(message: string): void {
 }
 
 async function handleTaskRequest(message: string, config: DeveloperConfig): Promise<void> {
-  console.log(chalk.cyan('🤖 Q: Let me help you with that task...'));
+  console.log(chalk.cyan('🤖 Q: Let me work on that for you...'));
   console.log('');
 
-  // Simulate task processing
-  const taskSpinner = require('ora')('Analyzing your request...').start();
-  
-  // Simulate some processing time
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  taskSpinner.text = 'Checking permissions and capabilities...';
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  taskSpinner.text = 'Preparing AWS resources...';
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  taskSpinner.succeed('Task analysis complete');
-  
-  console.log('');
-  console.log(chalk.cyan('🤖 Q: I\'ve analyzed your request. Here\'s what I can do:'));
-  console.log('');
-  
-  // Simulate different responses based on capability level
-  if (config.qLevel === 'observer') {
-    console.log(chalk.yellow('📊 Analysis Results:'));
-    console.log(chalk.gray('   • I can provide information and analysis'));
-    console.log(chalk.gray('   • I cannot create resources at my current Observer level'));
-    console.log(chalk.gray('   • I can suggest architecture patterns and best practices'));
-    console.log('');
-    console.log(chalk.cyan('🤖 Q: Would you like me to analyze existing resources or provide recommendations?'));
-  } else if (config.qLevel === 'assistant') {
-    console.log(chalk.yellow('🔧 Available Actions:'));
-    console.log(chalk.gray('   • I can modify existing resources'));
-    console.log(chalk.gray('   • I can create simple resources with approval'));
-    console.log(chalk.gray('   • I can generate Infrastructure as Code templates'));
-    console.log('');
-    console.log(chalk.cyan('🤖 Q: I can help implement this with proper approval workflows.'));
-  } else if (config.qLevel === 'partner') {
-    console.log(chalk.yellow('🚀 Full Implementation Available:'));
-    console.log(chalk.gray('   • I can create the complete solution'));
-    console.log(chalk.gray('   • I\'ll generate working code and infrastructure'));
-    console.log(chalk.gray('   • I\'ll set up monitoring and best practices'));
-    console.log('');
-    console.log(chalk.cyan('🤖 Q: I can implement this solution right away within my permission boundaries.'));
+  // Import the real task service
+  const { QTaskService } = await import('../services/QTaskService');
+  const taskService = new QTaskService();
+
+  // Create Q identity from config
+  const qIdentity = {
+    id: config.qId,
+    developerId: config.developerId,
+    level: config.qLevel as any,
+    createdAt: new Date(),
+    lastActive: new Date(),
+    successfulTasks: 0,
+    failedTasks: 0,
+    totalCost: 0,
+    riskScore: 0
+  };
+
+  try {
+    // Execute the real task
+    const result = await taskService.executeTask(qIdentity, message);
+
+    if (result.success) {
+      console.log(chalk.green(`🤖 Q: ${result.message}`));
+      
+      if (result.awsResources && result.awsResources.length > 0) {
+        console.log('');
+        console.log(chalk.cyan('🏗️ AWS Resources Created:'));
+        result.awsResources.forEach(resource => {
+          console.log(chalk.gray(`   • ${resource.type}: ${resource.name}`));
+          if (resource.arn) {
+            console.log(chalk.gray(`     ARN: ${resource.arn}`));
+          }
+          if (resource.endpoint) {
+            console.log(chalk.green(`     🌐 Endpoint: ${resource.endpoint}`));
+          }
+        });
+      }
+      
+      if (result.deploymentTime) {
+        console.log(chalk.gray(`     ⏱️ Deployment time: ${result.deploymentTime}ms`));
+      }
+      
+      if (result.cost) {
+        console.log(chalk.gray(`     💰 Estimated cost: $${result.cost.toFixed(3)}`));
+      }
+      
+      if (result.details && result.details.suggestions) {
+        console.log('');
+        console.log(chalk.yellow('💡 Try asking me to:'));
+        result.details.suggestions.forEach((suggestion: string) => {
+          console.log(chalk.gray(`   • ${suggestion}`));
+        });
+      }
+    } else {
+      console.log(chalk.yellow(`🤖 Q: ${result.message}`));
+      
+      if (result.details && result.details.suggestion) {
+        console.log(chalk.gray(`     💡 ${result.details.suggestion}`));
+      }
+    }
+  } catch (error) {
+    console.log(chalk.red(`🤖 Q: I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    console.log(chalk.gray('     This might be due to AWS permissions or configuration.'));
+    console.log(chalk.gray('     Make sure your AWS credentials are configured properly.'));
   }
   
   console.log('');
