@@ -1,98 +1,120 @@
 #!/usr/bin/env node
 
+/**
+ * no-wing CLI - Enterprise Developer+Q Vending and Onboarding System
+ */
+
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { initCommand } from './init';
-import { nothingCommand } from './nothing';
-import { verifyCommand, approveCommand, denyCommand } from './verify';
-import { qTaskCommand, qStatusCommand } from './q-task';
-import { qHistoryCommand, qGitStatusCommand } from './q-history';
+import { adminCommand } from './admin';
+import { setupCommand } from './setup';
 import { chatCommand } from './chat';
 
 const program = new Command();
 
 program
   .name('no-wing')
-  .description('🛫 AI development collaboration framework - autonomous AI teammate for AWS')
+  .description('🛫 Enterprise Developer+Q Vending and Onboarding System')
   .version('1.0.0');
 
-// Interactive Q chat
+// Admin commands for provisioning and monitoring
+const adminCmd = program
+  .command('admin')
+  .description('👨‍💼 Admin commands for managing developer+Q pairs');
+
+// Provision developer+Q pair
+adminCmd
+  .command('provision-developer')
+  .description('🏭 Provision a new developer+Q pair')
+  .option('-e, --email <email>', 'Developer email address')
+  .option('-r, --role <role>', 'Developer role (junior|senior|contractor|intern)')
+  .option('-t, --team <team>', 'Team name')
+  .option('-p, --projects <projects>', 'Comma-separated list of projects')
+  .option('-b, --budget <budget>', 'Monthly budget limit in USD')
+  .option('--duration <duration>', 'Duration for contractors/interns')
+  .action(async (options) => {
+    const { provisionDeveloper } = await import('./admin');
+    await provisionDeveloper(options);
+  });
+
+// Dashboard
+adminCmd
+  .command('dashboard')
+  .description('📊 View monitoring dashboard')
+  .action(async () => {
+    const { showDashboard } = await import('./admin');
+    await showDashboard();
+  });
+
+// Monitor specific Q
+adminCmd
+  .command('monitor')
+  .description('🔍 Monitor specific Q agent')
+  .argument('<qId>', 'Q agent ID to monitor')
+  .option('--days <days>', 'Number of days to look back', '7')
+  .action(async (qId, options) => {
+    const { monitorQ } = await import('./admin');
+    await monitorQ(qId, options);
+  });
+
+// Developer setup command
+program
+  .command('setup')
+  .description('🚀 Set up your developer environment with Q assistant')
+  .option('-t, --token <token>', 'Onboarding token provided by admin')
+  .action((options) => {
+    setupCommand(options);
+  });
+
+// Developer chat with Q
 program
   .command('chat')
-  .alias('q')
-  .description('💬 Start interactive chat session with Q')
-  .action(chatCommand);
+  .description('💬 Start interactive chat with your Q assistant')
+  .action(() => {
+    chatCommand();
+  });
 
-// Main init command
+// Help command
 program
-  .command('init')
-  .description('Initialize a new developer + Q pairing with AWS resources')
-  .option('--name <n>', 'Developer name')
-  .option('--env <env>', 'Environment (dev, staging, prod)', 'dev')
-  .option('--region <region>', 'AWS region', 'us-east-1')
-  .action(initCommand);
+  .command('help')
+  .description('❓ Show help information')
+  .action(() => {
+    console.log(chalk.cyan('🛫 no-wing - Enterprise Developer+Q Vending System'));
+    console.log('');
+    console.log(chalk.yellow('For Administrators:'));
+    console.log('  no-wing admin provision-developer  Provision new developer+Q pair');
+    console.log('  no-wing admin dashboard           View monitoring dashboard');
+    console.log('  no-wing admin monitor <qId>       Monitor specific Q agent');
+    console.log('');
+    console.log(chalk.yellow('For Developers:'));
+    console.log('  no-wing setup --token <token>     Complete onboarding setup');
+    console.log('  no-wing chat                      Chat with your Q assistant');
+    console.log('');
+    console.log(chalk.gray('Documentation: https://github.com/your-org/no-wing'));
+  });
 
-// Q verification commands
-program
-  .command('verify')
-  .description('🔍 Verify Q\'s operations and commits')
-  .option('--all', 'Show all pending verifications')
-  .option('--commit <hash>', 'Verify specific commit')
-  .option('--request <id>', 'Verify specific permission request')
-  .argument('[commits...]', 'Commit hashes to verify')
-  .action(verifyCommand);
-
-program
-  .command('approve')
-  .description('✅ Approve Q\'s permission request')
-  .argument('<requestId>', 'Request ID to approve')
-  .action(approveCommand);
-
-program
-  .command('deny')
-  .description('❌ Deny Q\'s permission request')
-  .argument('<requestId>', 'Request ID to deny')
-  .action(denyCommand);
-
-// Q task commands
-program
-  .command('q-task')
-  .description('🤖 Execute a task with Q')
-  .argument('<task>', 'Task description for Q to perform')
-  .action(qTaskCommand);
-
-program
-  .command('q-status')
-  .description('📊 Show Q\'s current status and capabilities')
-  .action(qStatusCommand);
-
-program
-  .command('q-history')
-  .description('📜 Show commit history with Q vs Human attribution')
-  .option('--limit <n>', 'Number of commits to show', '10')
-  .action(qHistoryCommand);
-
-program
-  .command('q-git-status')
-  .description('🔍 Show current Git identity status (Q vs Human)')
-  .action(qGitStatusCommand);
-
-// Easter egg command
-program
-  .command('nothing')
-  .description('🥚 You know nothing...')
-  .action(nothingCommand);
-
-// Handle unknown commands
+// Error handling
 program.on('command:*', () => {
-  console.error(chalk.red(`Invalid command: ${program.args.join(' ')}`));
-  console.log(chalk.yellow('Run "no-wing --help" for available commands'));
+  console.error(chalk.red('❌ Invalid command: %s'), program.args.join(' '));
+  console.log(chalk.gray('Run "no-wing help" for available commands'));
   process.exit(1);
 });
 
+// Parse command line arguments
+program.parse();
+
 // Show help if no command provided
 if (!process.argv.slice(2).length) {
-  program.outputHelp();
+  console.log(chalk.cyan('🛫 no-wing - Enterprise Developer+Q Vending System'));
+  console.log('');
+  console.log(chalk.yellow('Quick Start:'));
+  console.log('');
+  console.log(chalk.gray('Administrators:'));
+  console.log('  no-wing admin provision-developer --email sarah@company.com --role junior');
+  console.log('');
+  console.log(chalk.gray('Developers:'));
+  console.log('  no-wing setup --token <your-onboarding-token>');
+  console.log('  no-wing chat');
+  console.log('');
+  console.log(chalk.gray('Run "no-wing help" for all commands'));
 }
-
-program.parse();

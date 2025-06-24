@@ -1,111 +1,143 @@
 # 🛫 no-wing
 
-**AI development collaboration framework - autonomous AI teammate for AWS infrastructure.**
+**Enterprise Developer+Q Vending and Onboarding System**
+
+Provision new developers with their own AI assistant (Q) while maintaining proper IAM governance and monitoring.
 
 ## Why no-wing?
 
-- **Q creates real AWS resources** - Lambda functions, IAM roles, CloudWatch logs
-- **Q commits as AI agent** - Proper Git attribution with audit trail
-- **Progressive capabilities** - Q earns permissions through successful work
-- **Infrastructure as Code** - SAM templates for production-ready deployments
-- **Security boundaries** - Cannot escalate privileges or break your infrastructure
+- **Vend developer+Q pairs** with appropriate IAM roles and boundaries
+- **Monitor Q activities** in real-time with compliance reporting
+- **Onboard developers faster** with AI assistance from day one
+- **Maintain security** with permission boundaries and audit trails
+- **Scale AI adoption** across your organization safely
+
+## Architecture
+
+```
+Organization Admin
+    ↓ (provisions)
+no-wing Vending System
+    ↓ (creates)
+Developer + Q Pair
+    ↓ (monitored activities)
+AWS Infrastructure
+```
 
 ## Quick Start
 
+### For Administrators
+
 ```bash
-# Install globally
+# Install no-wing admin tools
 npm install -g no-wing
 
-# Initialize project
-no-wing init --name="Your Name" --env=dev
+# Provision a new developer+Q pair
+no-wing admin provision-developer \
+  --email sarah@company.com \
+  --role junior \
+  --team backend \
+  --projects user-service,payment-api
 
-# Start chatting with Q
+# Monitor Q activities
+no-wing admin dashboard
+no-wing admin monitor q-sarah-123
+```
+
+### For Developers
+
+```bash
+# Onboard with provided token
+no-wing setup --token <onboarding-token>
+
+# Start working with your Q assistant
 no-wing chat
+no-wing q-task "analyze the user-service architecture"
 ```
 
-## Interactive Development with Q
+## Core Components
 
-```bash
-$ no-wing chat
+### 1. Vending Service
+- **Provisions IAM roles** for both developer and Q
+- **Sets up monitoring** and audit trails
+- **Configures permission boundaries** to prevent escalation
+- **Initializes Q** with appropriate capabilities
 
-🛫 no-wing Interactive Q Chat
-================================
+### 2. IAM Management
+- **Human developer roles** with project-specific permissions
+- **Q agent roles** with limited, monitored AWS access
+- **Permission boundaries** that prevent privilege escalation
+- **Escalation workflows** for capability advancement
 
-🤖 Q: Hello! I'm Q, your AI development teammate.
-     I'm currently at PARTNER level with 15 successful tasks.
+### 3. Monitoring & Compliance
+- **Real-time activity logging** for all Q actions
+- **Anomaly detection** for unusual behavior
+- **Compliance reporting** for audit requirements
+- **Risk scoring** for Q activities
 
-You: create a Lambda function for user authentication
+### 4. Developer Experience
+- **Seamless onboarding** with pre-configured Q assistant
+- **Natural language interface** for AWS operations
+- **Company-aware Q** that learns organizational patterns
+- **Safe experimentation** within permission boundaries
 
-🤖 Q: Let me work on that for you...
+## Security Model
 
-🤖 Q: Task completed successfully! 🎉
-     I created 3 AWS resource(s):
-     • IAM::Role: q-create-lambda-function-123456-role
-     • CloudWatchLogs::LogGroup: /aws/lambda/q-create-lambda-function-123456
-     • Lambda::Function: q-create-lambda-function-123456
-     I documented the work in Git commit: abc123de
-
-You: exit
-
-🤖 Q: Thanks for the chat! We exchanged 2 messages.
-     I'm always here when you need me. Just run 'no-wing chat' again!
-
-🛫 Happy coding! No wings needed.
+### IAM Architecture
+```
+Organization Account
+├── Human Developer Role
+│   ├── Project-specific AWS permissions
+│   ├── Cannot assume Q roles
+│   └── Permission boundary prevents escalation
+│
+└── Q Agent Role
+    ├── Limited AWS actions (based on capability level)
+    ├── Cannot assume human roles
+    ├── All actions logged and monitored
+    └── Strict permission boundary
 ```
 
-## Commands
+### Monitoring
+- **CloudTrail integration** for complete audit logs
+- **Real-time alerts** for risky Q behavior
+- **Cost tracking** per Q agent
+- **Compliance dashboards** for management
 
-```bash
-# Interactive chat with Q (recommended)
-no-wing chat    # Start conversation with Q
-no-wing q       # Shorthand for chat
+## Use Cases
 
-# One-shot commands
-no-wing q-task "create a Lambda function for data processing"
-no-wing q-status
+### New Developer Onboarding
+1. **Admin provisions** developer+Q pair with appropriate permissions
+2. **Developer receives** onboarding instructions and credentials
+3. **Q assists** with learning company infrastructure and patterns
+4. **Organization monitors** Q activities and developer progress
 
-# Project setup
-no-wing init --name=YourName --env=dev --region=us-east-1
-```
+### AI-Assisted Development
+1. **Developer works** with Q on daily tasks
+2. **Q suggests** company-approved patterns and solutions
+3. **Q creates resources** within permission boundaries
+4. **Activities logged** for compliance and learning
 
-## How Q Works
-
-**Q is an AI developer with progressive AWS permissions:**
-
-1. **Observer** - Reads and analyzes your infrastructure
-2. **Assistant** - Updates configurations and settings  
-3. **Partner** - Creates new AWS resources and features
-
-Q earns new capabilities by successfully completing tasks. All work is committed to Git with proper AI agent attribution using SAM templates for Infrastructure as Code.
-
-## What Gets Deployed
-
-- **SAM templates** for Infrastructure as Code
-- **Lambda functions** for orchestration
-- **IAM roles** for you and Q with scoped permissions
-- **Permission boundaries** to prevent privilege escalation
-- **CloudWatch logging** for monitoring
-
-## Security
-
-- **Permission boundaries** prevent Q from escalating privileges
-- **Resource isolation** - Q cannot access core infrastructure
-- **Session expiry** - 24-hour time limits with refresh
-- **Complete audit trail** - Every action logged in Git and CloudWatch
-- **Regional constraints** - Operations limited to deployment region
+### Capability Progression
+1. **Q starts** with Observer-level permissions
+2. **Q earns** more capabilities through successful tasks
+3. **Admin approves** permission escalations
+4. **Q becomes** more autonomous within safe boundaries
 
 ## Requirements
 
-- Node.js 18+
-- AWS CLI configured with admin permissions (for initial deployment)
-- SAM CLI installed (optional, for advanced deployments)
+- **AWS Organization** with appropriate account structure
+- **IAM Identity Center** for SSO integration (optional)
+- **CloudTrail** enabled for audit logging
+- **Node.js 18+** for no-wing CLI tools
 
 ## Documentation
 
-- **[Project Structure](PROJECT-STRUCTURE.md)** - Codebase organization
-- **[Distribution Strategy](DISTRIBUTION.md)** - Installation and deployment options
-- **[Security Model](SECURITY.md)** - How Q is secured and what it can/cannot do
+- **[Admin Guide](docs/ADMIN.md)** - Setting up and managing the system
+- **[Developer Guide](docs/DEVELOPER.md)** - Using your Q assistant
+- **[Security Model](docs/SECURITY.md)** - IAM architecture and boundaries
+- **[Monitoring Guide](docs/MONITORING.md)** - Compliance and reporting
 
 ---
 
-**Let Q be your autonomous AWS development teammate.** 🛫
+**Enterprise-grade AI assistant provisioning with proper governance.** 🛫
