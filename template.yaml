@@ -24,6 +24,11 @@ Parameters:
     Default: 500
     Description: Monthly cost limit in USD for budget alerts
 
+  AdminEmail:
+    Type: String
+    Default: admin@example.com
+    Description: Email address for budget and security alerts
+
 Globals:
   Function:
     Timeout: 300
@@ -328,14 +333,12 @@ Resources:
       S3KeyPrefix: 'cloudtrail-logs/'
       IncludeGlobalServiceEvents: true
       IsMultiRegionTrail: true
+      IsLogging: true
       EnableLogFileValidation: true
       EventSelectors:
         - ReadWriteType: All
           IncludeManagementEvents: true
           DataResources:
-            - Type: 'AWS::IAM::Role'
-              Values: 
-                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/NoWing*'
             - Type: 'AWS::Lambda::Function'
               Values:
                 - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:no-wing-*'
@@ -362,23 +365,23 @@ Resources:
         CostFilters:
           TagKey:
             - NoWingComponent
-        NotificationsWithSubscribers:
-          - Notification:
-              NotificationType: ACTUAL
-              ComparisonOperator: GREATER_THAN
-              Threshold: 80
-              ThresholdType: PERCENTAGE
-            Subscribers:
-              - SubscriptionType: EMAIL
-                Address: admin@example.com  # Replace with actual email
-          - Notification:
-              NotificationType: FORECASTED
-              ComparisonOperator: GREATER_THAN
-              Threshold: 100
-              ThresholdType: PERCENTAGE
-            Subscribers:
-              - SubscriptionType: EMAIL
-                Address: admin@example.com  # Replace with actual email
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AdminEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AdminEmail
 
   # ============================================================================
   # CLOUDWATCH ALARMS

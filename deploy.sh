@@ -8,21 +8,23 @@ set -e
 ENVIRONMENT=${1:-dev}
 GITHUB_APP_ID=${2}
 GITHUB_INSTALLATION_ID=${3}
+ADMIN_EMAIL=${4:-admin@example.com}
 
 echo "🛫 no-wing SAM Deployment"
 echo "========================="
 echo ""
 echo "Environment: $ENVIRONMENT"
+echo "Admin Email: $ADMIN_EMAIL"
 echo ""
 
 # Validate parameters
 if [ -z "$GITHUB_APP_ID" ] || [ -z "$GITHUB_INSTALLATION_ID" ]; then
     echo "❌ Missing required parameters"
     echo ""
-    echo "Usage: ./deploy.sh <environment> <github-app-id> <github-installation-id>"
+    echo "Usage: ./deploy.sh <environment> <github-app-id> <github-installation-id> [admin-email]"
     echo ""
     echo "Example:"
-    echo "  ./deploy.sh dev 123456 789012"
+    echo "  ./deploy.sh dev 123456 789012 admin@company.com"
     echo ""
     echo "To get GitHub App credentials:"
     echo "  1. Go to GitHub Settings > Developer settings > GitHub Apps"
@@ -48,6 +50,7 @@ sam deploy \
         "Environment=$ENVIRONMENT" \
         "GitHubAppId=$GITHUB_APP_ID" \
         "GitHubInstallationId=$GITHUB_INSTALLATION_ID" \
+        "AdminEmail=$ADMIN_EMAIL" \
         "MonthlyCostLimit=500"
 
 # Get outputs
