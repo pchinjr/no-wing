@@ -1,10 +1,31 @@
 {
   "name": "no-wing",
-  "version": "0.1.0",
-  "description": "Autonomous Developer Onboarding System - treating Q as a first-class developer",
+  "version": "1.0.0",
+  "description": "AI development collaboration framework - autonomous AI teammate for AWS infrastructure",
   "main": "dist/index.js",
   "bin": {
     "no-wing": "./dist/cli/index.js"
+  },
+  "keywords": [
+    "ai",
+    "aws",
+    "lambda",
+    "framework",
+    "automation",
+    "infrastructure",
+    "collaboration",
+    "devops",
+    "serverless"
+  ],
+  "author": "Paul Chin Jr <pchinjr@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pchinjr/no-wing.git"
+  },
+  "homepage": "https://github.com/pchinjr/no-wing#readme",
+  "bugs": {
+    "url": "https://github.com/pchinjr/no-wing/issues"
   },
   "scripts": {
     "build": "tsc",
