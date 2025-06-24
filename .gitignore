@@ -21,6 +21,8 @@ Thumbs.db
 *.log
 logs/
 
-# Runtime
-.no-wing/
+# Runtime (but allow Q work log for commits)
+.no-wing/q-identity.json
+.no-wing/q-git-config.json
 response.json
+test-payload.json
