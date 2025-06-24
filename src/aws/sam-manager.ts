@@ -158,21 +158,41 @@ export class SAMManager {
   private async samBuild(templatePath: string): Promise<void> {
     const buildDir = join(this.deploymentDir, 'build');
     
-    const buildCommand = [
+    // Try without container first (faster for development)
+    let buildCommand = [
       'sam build',
       `--template-file ${templatePath}`,
-      `--build-dir ${buildDir}`,
-      '--use-container'
+      `--build-dir ${buildDir}`
     ].join(' ');
 
     console.log(`🔨 Building SAM application...`);
-    const { stdout, stderr } = await execAsync(buildCommand);
     
-    if (stderr && !stderr.includes('Successfully built')) {
-      console.warn('SAM build warnings:', stderr);
+    try {
+      const { stdout, stderr } = await execAsync(buildCommand);
+      
+      if (stderr && !stderr.includes('Successfully built')) {
+        console.warn('SAM build warnings:', stderr);
+      }
+      
+      console.log('✅ SAM build completed');
+    } catch (error) {
+      // If regular build fails, try with container
+      console.log('🐳 Trying SAM build with container...');
+      
+      buildCommand = [
+        'sam build',
+        `--template-file ${templatePath}`,
+        `--build-dir ${buildDir}`,
+        '--use-container'
+      ].join(' ');
+      
+      try {
+        const { stdout, stderr } = await execAsync(buildCommand);
+        console.log('✅ SAM build completed with container');
+      } catch (containerError) {
+        throw new Error(`SAM build failed: ${containerError}`);
+      }
     }
-    
-    console.log('✅ SAM build completed');
   }
 
   private async samDeploy(stackName: string, parameters: string[]): Promise<void> {
