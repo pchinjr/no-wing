@@ -147,7 +147,32 @@ export class AWSServiceManager {
       };
 
       const createCommand = new CreateFunctionCommand(createFunctionParams);
-      const functionResponse = await this.lambdaClient.send(createCommand);
+      
+      // Retry Lambda creation with exponential backoff for IAM propagation
+      let functionResponse;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        try {
+          functionResponse = await this.lambdaClient.send(createCommand);
+          break;
+        } catch (error: any) {
+          if (error.name === 'InvalidParameterValueException' && 
+              error.message.includes('cannot be assumed by Lambda') && 
+              retries < maxRetries - 1) {
+            console.log(`⏳ IAM role not ready, retrying in ${(retries + 1) * 5} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, (retries + 1) * 5000));
+            retries++;
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      if (!functionResponse) {
+        throw new Error('Failed to create Lambda function after retries');
+      }
 
       resources.push({
         type: 'Lambda::Function',
@@ -376,6 +401,10 @@ export class AWSServiceManager {
     });
 
     await this.iamClient.send(attachPolicyCommand);
+
+    // Wait for IAM role propagation
+    console.log('⏳ Waiting for IAM role propagation...');
+    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
 
     return roleResponse.Role?.Arn || '';
   }

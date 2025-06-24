@@ -97,23 +97,28 @@ Resources:
           # Deny dangerous actions
           - Effect: Deny
             Action:
-              - iam:CreateRole
-              - iam:DeleteRole
-              - iam:AttachRolePolicy
-              - iam:DetachRolePolicy
-              - iam:PutRolePolicy
-              - iam:DeleteRolePolicy
-              - iam:CreatePolicy
-              - iam:DeletePolicy
               - iam:CreateUser
               - iam:DeleteUser
+              - iam:CreatePolicy
+              - iam:DeletePolicy
+              - iam:PutUserPolicy
+              - iam:AttachUserPolicy
               - organizations:*
               - account:*
               - billing:*
               - budgets:*
               - support:*
             Resource: '*'
-          # Allow everything else within region constraints
+          # Deny modifying no-wing core infrastructure
+          - Effect: Deny
+            Action: '*'
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/NoWing*'
+              - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:no-wing-*'
+            Condition:
+              StringNotEquals:
+                'aws:PrincipalTag/NoWingComponent': 'q-agent'
+          # Allow everything else within region and resource constraints
           - Effect: Allow
             Action: '*'
             Resource: '*'
@@ -141,6 +146,65 @@ Resources:
       PermissionsBoundary: !Ref NoWingQPermissionBoundary
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: NoWingQExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Lambda permissions
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:GetFunction
+                  - lambda:ListFunctions
+                  - lambda:DeleteFunction
+                  - lambda:InvokeFunction
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'aws:RequestedRegion': !Ref AWS::Region
+              # IAM permissions for Lambda roles
+              - Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:TagRole
+                Resource: 
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/q-*'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/*-role'
+              # CloudWatch Logs permissions
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: 
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/no-wing/*'
+              # S3 permissions
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: 
+                  - !Sub 'arn:aws:s3:::q-*-${AWS::AccountId}-*'
+                  - !Sub 'arn:aws:s3:::q-*-${AWS::AccountId}-*/*'
+              # STS permissions for account info
+              - Effect: Allow
+                Action:
+                  - sts:GetCallerIdentity
+                Resource: '*'
       Tags:
         - Key: NoWingComponent
           Value: q-base-role
