@@ -1,5 +1,6 @@
 import { IAMClient, CreateRoleCommand, AttachRolePolicyCommand, CreatePolicyCommand } from '@aws-sdk/client-iam';
 import { SSMClient, PutParameterCommand } from '@aws-sdk/client-ssm';
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { Octokit } from '@octokit/rest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -362,9 +363,16 @@ jobs:
   }
 
   private async getAccountId(): Promise<string> {
-    // This would typically come from STS get-caller-identity
-    // For now, return a placeholder
-    return process.env.AWS_ACCOUNT_ID || '123456789012';
+    try {
+      const stsClient = new STSClient({ region: this.config.region });
+      const command = new GetCallerIdentityCommand({});
+      const response = await stsClient.send(command);
+      return response.Account || '';
+    } catch (error) {
+      console.error('Failed to get account ID:', error);
+      // Fallback to environment variable if available
+      return process.env.AWS_ACCOUNT_ID || '';
+    }
   }
 
   private async encryptSecret(value: string, publicKey: string): Promise<string> {
