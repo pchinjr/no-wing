@@ -302,4 +302,126 @@ export class SAMManager {
       return [];
     }
   }
+
+  async deployFromProject(
+    project: any, // GeneratedProject type
+    config: any   // WorkspaceConfig type
+  ): Promise<SAMDeploymentResult> {
+    try {
+      const stackName = `q-${this.sanitizeStackName(project.name)}-${Date.now().toString().slice(-6)}`;
+      const templatePath = join(project.path, 'template.yaml');
+      
+      if (!existsSync(templatePath)) {
+        throw new Error(`SAM template not found: ${templatePath}`);
+      }
+
+      console.log(`🏗️ Deploying project with SAM: ${stackName}`);
+      console.log(`📁 Project path: ${project.path}`);
+      
+      // Build the SAM application from project directory
+      await this.samBuildFromProject(project.path);
+      
+      // Deploy the SAM application
+      const deployResult = await this.samDeployFromProject(stackName, project.path, config);
+      
+      // Get stack outputs
+      const outputs = await this.getStackOutputs(stackName);
+      
+      // Get stack resources
+      const resources = await this.getStackResources(stackName);
+      
+      return {
+        success: true,
+        stackName,
+        outputs,
+        resources,
+      };
+      
+    } catch (error) {
+      console.error('SAM project deployment failed:', error);
+      return {
+        success: false,
+        stackName: '',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async samBuildFromProject(projectPath: string): Promise<void> {
+    const buildDir = join(projectPath, '.aws-sam', 'build');
+    const templatePath = join(projectPath, 'template.yaml');
+    
+    // Try without container first (faster for development)
+    let buildCommand = [
+      'sam build',
+      `--template-file ${templatePath}`,
+      `--build-dir ${buildDir}`,
+      `--base-dir ${projectPath}`
+    ].join(' ');
+
+    console.log(`🔨 Building SAM project at ${projectPath}...`);
+    
+    try {
+      const { stdout, stderr } = await execAsync(buildCommand, { cwd: projectPath });
+      
+      if (stderr && !stderr.includes('Successfully built')) {
+        console.warn('SAM build warnings:', stderr);
+      }
+      
+      console.log('✅ SAM project build completed');
+    } catch (error) {
+      // If regular build fails, try with container
+      console.log('🐳 Trying SAM build with container...');
+      
+      buildCommand = [
+        'sam build',
+        `--template-file ${templatePath}`,
+        `--build-dir ${buildDir}`,
+        `--base-dir ${projectPath}`,
+        '--use-container'
+      ].join(' ');
+      
+      try {
+        const { stdout, stderr } = await execAsync(buildCommand, { cwd: projectPath });
+        console.log('✅ SAM project build completed with container');
+      } catch (containerError) {
+        throw new Error(`SAM build failed: ${containerError}`);
+      }
+    }
+  }
+
+  private async samDeployFromProject(stackName: string, projectPath: string, config: any): Promise<void> {
+    const buildDir = join(projectPath, '.aws-sam', 'build');
+    const templatePath = join(buildDir, 'template.yaml');
+    
+    const deployCommand = [
+      'sam deploy',
+      `--template-file ${templatePath}`,
+      `--stack-name ${stackName}`,
+      `--parameter-overrides Environment=${config.environment} FunctionName=${config.name}`,
+      '--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM',
+      '--no-confirm-changeset',
+      '--no-fail-on-empty-changeset',
+      `--region ${this.region}`,
+      '--tags CreatedBy=Q-Agent ManagedBy=no-wing GeneratedProject=true'
+    ].join(' ');
+
+    console.log(`🚀 Deploying SAM project stack: ${stackName}`);
+    const { stdout, stderr } = await execAsync(deployCommand, { cwd: projectPath });
+    
+    if (stderr && !stderr.includes('Successfully created/updated stack')) {
+      console.warn('SAM deploy warnings:', stderr);
+    }
+    
+    console.log('✅ SAM project deployment completed');
+  }
+
+  private sanitizeStackName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50); // CloudFormation stack name limit
+  }
 }

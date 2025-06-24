@@ -1,5 +1,6 @@
 import { SAMManager, SAMDeploymentResult } from './sam-manager';
 import { QIdentity } from '../q/identity';
+import { QWorkspaceManager, WorkspaceConfig, GeneratedProject } from '../q/workspace-manager';
 
 export interface AWSResource {
   type: string;
@@ -12,6 +13,7 @@ export interface AWSResource {
 export interface AWSOperationResult {
   success: boolean;
   resources: AWSResource[];
+  generatedProject?: GeneratedProject;
   metadata?: Record<string, any>;
   errors?: string[];
 }
@@ -19,11 +21,13 @@ export interface AWSOperationResult {
 export class AWSServiceManager {
   private region: string;
   private samManager: SAMManager;
+  private workspaceManager: QWorkspaceManager;
   private accountId: string | null = null;
 
   constructor(region: string = 'us-east-1') {
     this.region = region;
     this.samManager = new SAMManager(region);
+    this.workspaceManager = new QWorkspaceManager();
   }
 
   async createLambdaFunction(
@@ -38,19 +42,39 @@ export class AWSServiceManager {
     } = {}
   ): Promise<AWSOperationResult> {
     try {
-      console.log(`🏗️ Creating Lambda function with SAM: ${functionName}`);
+      console.log(`🏗️ Creating Lambda function project: ${functionName}`);
       
-      const result = await this.samManager.deployLambdaFunction(
-        functionName,
+      // Create workspace project with code and infrastructure
+      const workspaceConfig: WorkspaceConfig = {
+        name: functionName,
         description,
         qIdentity,
-        options
+        environment: options.environment || 'dev',
+        region: this.region
+      };
+
+      const generatedProject = await this.workspaceManager.createProject(
+        workspaceConfig,
+        'lambda'
+      );
+
+      console.log(`📁 Generated project at: ${generatedProject.path}`);
+      console.log(`📋 Created ${generatedProject.files.length} files:`);
+      generatedProject.files.forEach(file => {
+        console.log(`   • ${file.path} (${file.type})`);
+      });
+
+      // Deploy using SAM from the generated project
+      const result = await this.samManager.deployFromProject(
+        generatedProject,
+        workspaceConfig
       );
 
       if (!result.success) {
         return {
           success: false,
           resources: [],
+          generatedProject,
           errors: [result.error || 'SAM deployment failed']
         };
       }
@@ -64,17 +88,20 @@ export class AWSServiceManager {
         properties: {
           runtime: options.runtime || 'nodejs18.x',
           memory: options.memorySize || 256,
-          timeout: options.timeout || 30
+          timeout: options.timeout || 30,
+          projectPath: generatedProject.path
         }
       })) || [];
 
       return {
         success: true,
         resources,
+        generatedProject,
         metadata: {
           stackName: result.stackName,
           outputs: result.outputs,
-          deploymentMethod: 'SAM'
+          deploymentMethod: 'SAM',
+          workspacePath: generatedProject.path
         }
       };
 
@@ -99,8 +126,24 @@ export class AWSServiceManager {
     } = {}
   ): Promise<AWSOperationResult> {
     try {
-      console.log(`🏗️ Creating S3 bucket with SAM: ${bucketName}`);
+      console.log(`🏗️ Creating S3 bucket project: ${bucketName}`);
       
+      // Create workspace project
+      const workspaceConfig: WorkspaceConfig = {
+        name: bucketName,
+        description: options.purpose || 'S3 bucket for data storage',
+        qIdentity,
+        environment: options.environment || 'dev',
+        region: this.region
+      };
+
+      const generatedProject = await this.workspaceManager.createProject(
+        workspaceConfig,
+        's3-processor'
+      );
+
+      console.log(`📁 Generated S3 project at: ${generatedProject.path}`);
+
       const result = await this.samManager.deployS3Bucket(
         bucketName,
         options.purpose || 'General storage bucket',
@@ -116,11 +159,11 @@ export class AWSServiceManager {
         return {
           success: false,
           resources: [],
+          generatedProject,
           errors: [result.error || 'SAM deployment failed']
         };
       }
 
-      // Convert SAM resources to our format
       const resources: AWSResource[] = result.resources?.map(resource => ({
         type: resource.type,
         name: resource.name,
@@ -129,17 +172,20 @@ export class AWSServiceManager {
         properties: {
           versioning: options.enableVersioning,
           encryption: options.enableEncryption !== false,
-          purpose: options.purpose
+          purpose: options.purpose,
+          projectPath: generatedProject.path
         }
       })) || [];
 
       return {
         success: true,
         resources,
+        generatedProject,
         metadata: {
           stackName: result.stackName,
           outputs: result.outputs,
-          deploymentMethod: 'SAM'
+          deploymentMethod: 'SAM',
+          workspacePath: generatedProject.path
         }
       };
 
@@ -231,5 +277,17 @@ export class AWSServiceManager {
       console.warn('Could not get AWS account ID');
       return '123456789012';
     }
+  }
+
+  getWorkspaceManager(): QWorkspaceManager {
+    return this.workspaceManager;
+  }
+
+  listGeneratedProjects(): string[] {
+    return this.workspaceManager.listProjects();
+  }
+
+  getWorkspacePath(): string {
+    return this.workspaceManager.getWorkspaceRoot();
   }
 }

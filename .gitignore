@@ -22,6 +22,9 @@ samconfig.toml
 .no-wing/
 *.log
 
+# Q Workspace - Generated code and projects
+q-workspace/
+
 # IDE files
 .vscode/
 .idea/
