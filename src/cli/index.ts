@@ -7,13 +7,21 @@ import { nothingCommand } from './nothing';
 import { verifyCommand, approveCommand, denyCommand } from './verify';
 import { qTaskCommand, qStatusCommand } from './q-task';
 import { qHistoryCommand, qGitStatusCommand } from './q-history';
+import { chatCommand } from './chat';
 
 const program = new Command();
 
 program
   .name('no-wing')
-  .description('🛫 Autonomous Developer Onboarding System - No wings required')
-  .version('0.1.0');
+  .description('🛫 AI development collaboration framework - autonomous AI teammate for AWS')
+  .version('1.0.0');
+
+// Interactive Q chat
+program
+  .command('chat')
+  .alias('q')
+  .description('💬 Start interactive chat session with Q')
+  .action(chatCommand);
 
 // Main init command
 program
