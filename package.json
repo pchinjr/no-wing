@@ -1,7 +1,7 @@
 {
   "name": "no-wing",
   "version": "1.0.0",
-  "description": "Enterprise Developer+Q Vending and Onboarding System",
+  "description": "Guardian Angel for Amazon Q - Project-aware AI assistant for AWS serverless developers",
   "main": "dist/index.js",
   "bin": {
     "no-wing": "./dist/cli/index.js"
@@ -10,46 +10,32 @@
     "build": "tsc",
     "dev": "ts-node src/cli/index.ts",
     "start": "node dist/cli/index.js",
-    "clean": "rm -rf dist .no-wing",
-    "demo": "./demo-hackathon.sh"
+    "clean": "rm -rf dist .no-wing"
   },
   "keywords": [
     "aws",
-    "lambda",
-    "enterprise",
+    "serverless",
+    "amazon-q",
+    "sam",
+    "guardian",
     "ai-assistant",
-    "developer-onboarding",
-    "iam",
-    "governance",
-    "monitoring",
-    "hackathon"
+    "project-context"
   ],
-  "author": "Paul Chin Jr <pchinjr@gmail.com>",
+  "author": "Your Name",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pchinjr/no-wing.git"
-  },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-api-gateway": "^3.0.0",
-    "@aws-sdk/client-iam": "^3.0.0",
-    "@aws-sdk/client-lambda": "^3.0.0",
+    "@aws-sdk/client-sts": "^3.0.0",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "inquirer": "^8.2.6",
-    "js-yaml": "^4.1.0",
-    "jszip": "^3.10.1",
-    "ora": "^5.4.1",
-    "uuid": "^9.0.0"
+    "ora": "^5.4.1"
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.10",
     "@types/node": "^20.0.0",
-    "@types/uuid": "^9.0.0",
     "ts-node": "^10.0.0",
     "typescript": "^5.0.0"
   }

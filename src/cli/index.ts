@@ -1,96 +1,94 @@
 #!/usr/bin/env node
 
 /**
- * no-wing CLI - Enterprise Developer+Q Vending and Onboarding System
+ * no-wing CLI - Guardian Angel for Amazon Q
  */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { adminCommand } from './admin';
-import { setupCommand } from './setup';
-import { chatCommand } from './chat';
 
 const program = new Command();
 
 program
   .name('no-wing')
-  .description('🛫 Enterprise Developer+Q Vending and Onboarding System')
+  .description('🛫 Guardian Angel for Amazon Q - Project-aware AI assistant for AWS serverless developers')
   .version('1.0.0');
 
-// Admin commands for provisioning and monitoring
-const adminCmd = program
-  .command('admin')
-  .description('👨‍💼 Admin commands for managing developer+Q pairs');
-
-// Provision developer+Q pair
-adminCmd
-  .command('provision-developer')
-  .description('🏭 Provision a new developer+Q pair')
-  .option('-e, --email <email>', 'Developer email address')
-  .option('-r, --role <role>', 'Developer role (junior|senior|contractor|intern)')
-  .option('-t, --team <team>', 'Team name')
-  .option('-p, --projects <projects>', 'Comma-separated list of projects')
-  .option('-b, --budget <budget>', 'Monthly budget limit in USD')
-  .option('--duration <duration>', 'Duration for contractors/interns')
+// Configure Q with project context
+program
+  .command('configure')
+  .description('🔧 Configure Q with your project context and AWS settings')
+  .option('-p, --path <path>', 'Project path (defaults to current directory)')
   .action(async (options) => {
-    const { provisionDeveloper } = await import('./admin');
-    await provisionDeveloper(options);
+    const { configureCommand } = await import('./configure');
+    await configureCommand(options);
   });
 
-// Dashboard
-adminCmd
-  .command('dashboard')
-  .description('📊 View monitoring dashboard')
+// Launch Q with project guidance
+program
+  .command('launch')
+  .alias('q')
+  .description('🚀 Launch Q with project-specific guidance and context')
   .action(async () => {
-    const { showDashboard } = await import('./admin');
-    await showDashboard();
+    const { launchCommand } = await import('./launch');
+    await launchCommand();
   });
 
-// Monitor specific Q
-adminCmd
-  .command('monitor')
-  .description('🔍 Monitor specific Q agent')
-  .argument('<qId>', 'Q agent ID to monitor')
-  .option('--days <days>', 'Number of days to look back', '7')
-  .action(async (qId, options) => {
-    const { monitorQ } = await import('./admin');
-    await monitorQ(qId, options);
+// Show project status and Q configuration
+program
+  .command('status')
+  .description('📊 Show project analysis and Q configuration status')
+  .action(async () => {
+    const { statusCommand } = await import('./status');
+    await statusCommand();
   });
 
-// Developer setup command
+// Quick setup (configure + launch)
 program
   .command('setup')
-  .description('🚀 Set up your developer environment with Q assistant')
-  .option('-t, --token <token>', 'Onboarding token provided by admin')
-  .action((options) => {
-    setupCommand(options);
-  });
-
-// Developer chat with Q
-program
-  .command('chat')
-  .description('💬 Start interactive chat with your Q assistant')
-  .action(() => {
-    chatCommand();
+  .description('⚡ Quick setup: configure and launch Q in one step')
+  .option('-p, --path <path>', 'Project path (defaults to current directory)')
+  .action(async (options) => {
+    const { setupCommand } = await import('./setup');
+    await setupCommand(options);
   });
 
 // Help command
 program
   .command('help')
-  .description('❓ Show help information')
+  .description('❓ Show detailed help and usage examples')
   .action(() => {
-    console.log(chalk.cyan('🛫 no-wing - Enterprise Developer+Q Vending System'));
+    console.log(chalk.cyan('🛫 no-wing - Guardian Angel for Amazon Q'));
     console.log('');
-    console.log(chalk.yellow('For Administrators:'));
-    console.log('  no-wing admin provision-developer  Provision new developer+Q pair');
-    console.log('  no-wing admin dashboard           View monitoring dashboard');
-    console.log('  no-wing admin monitor <qId>       Monitor specific Q agent');
+    console.log(chalk.yellow('🎯 Purpose:'));
+    console.log('Configure and launch Amazon Q with your AWS serverless project context.');
+    console.log('Q will understand your project structure, AWS account, and commit authorship.');
     console.log('');
-    console.log(chalk.yellow('For Developers:'));
-    console.log('  no-wing setup --token <token>     Complete onboarding setup');
-    console.log('  no-wing chat                      Chat with your Q assistant');
+    console.log(chalk.yellow('🚀 Quick Start:'));
+    console.log('  no-wing setup              # Configure and launch Q');
+    console.log('  no-wing configure          # Configure Q with project context');
+    console.log('  no-wing launch             # Launch Q with guidance');
+    console.log('  no-wing status             # Show project and Q status');
     console.log('');
-    console.log(chalk.gray('Documentation: https://github.com/your-org/no-wing'));
+    console.log(chalk.yellow('💡 What Q will know about your project:'));
+    console.log('  • Project type (SAM, CDK, Serverless Framework)');
+    console.log('  • AWS account and region');
+    console.log('  • Git repository and commit authorship');
+    console.log('  • Existing Lambda functions and structure');
+    console.log('  • SAM deployment configuration');
+    console.log('');
+    console.log(chalk.yellow('🛡️ Guardian Features:'));
+    console.log('  • Project-aware Q responses');
+    console.log('  • Proper commit authorship for Q changes');
+    console.log('  • SAM deployment with your AWS settings');
+    console.log('  • Context-aware Lambda function creation');
+    console.log('');
+    console.log(chalk.gray('Example workflow:'));
+    console.log(chalk.gray('  cd my-sam-project'));
+    console.log(chalk.gray('  no-wing setup'));
+    console.log(chalk.gray('  # Q launches with full project context'));
+    console.log(chalk.gray('  # Ask Q: "create a new Lambda function for user auth"'));
+    console.log(chalk.gray('  # Q creates function, updates SAM template, commits with your authorship'));
   });
 
 // Error handling
@@ -105,16 +103,13 @@ program.parse();
 
 // Show help if no command provided
 if (!process.argv.slice(2).length) {
-  console.log(chalk.cyan('🛫 no-wing - Enterprise Developer+Q Vending System'));
+  console.log(chalk.cyan('🛫 no-wing - Guardian Angel for Amazon Q'));
   console.log('');
-  console.log(chalk.yellow('Quick Start:'));
+  console.log(chalk.yellow('🚀 Quick Start:'));
+  console.log('  no-wing setup              # Configure and launch Q with project context');
+  console.log('  no-wing configure          # Configure Q for your project');
+  console.log('  no-wing launch             # Launch Q with guidance');
+  console.log('  no-wing status             # Show project status');
   console.log('');
-  console.log(chalk.gray('Administrators:'));
-  console.log('  no-wing admin provision-developer --email sarah@company.com --role junior');
-  console.log('');
-  console.log(chalk.gray('Developers:'));
-  console.log('  no-wing setup --token <your-onboarding-token>');
-  console.log('  no-wing chat');
-  console.log('');
-  console.log(chalk.gray('Run "no-wing help" for all commands'));
+  console.log(chalk.gray('Run "no-wing help" for detailed information'));
 }

@@ -1,164 +1,133 @@
 # 🛫 no-wing
 
-**Enterprise Developer+Q Vending System for AWS Lambda Hackathon**
+**Guardian Angel for Amazon Q - Project-aware AI assistant for AWS serverless developers**
 
-Provision developers with AI assistants (Q) that create real AWS Lambda functions while maintaining enterprise governance.
+Configure and launch Amazon Q with your AWS serverless project context. Q will understand your project structure, AWS account, and commit authorship - so you never need to start Q directly.
 
-## 🏆 AWS Lambda Hackathon Entry
+## 🎯 Purpose
 
-### **Problem Solved**
-Enterprise developer onboarding is slow and expensive. New developers need weeks to become productive with AWS Lambda development.
+**no-wing** acts as a guardian angel for Q, providing:
+- **Project Context**: Q understands your SAM/CDK/Serverless project structure
+- **AWS Account Awareness**: Q knows your AWS account and region settings
+- **Commit Authorship**: Q commits changes with proper git authorship
+- **SAM Integration**: Q can deploy using your SAM configuration
+- **Zero Direct Q Access**: You only interact with no-wing, never Q directly
 
-### **Solution**
-**no-wing** vends developer+Q pairs where Q is an AI assistant that:
-- Creates **real AWS Lambda functions** with working code
-- Sets up **API Gateway triggers** automatically  
-- Maintains **enterprise IAM governance**
-- Provides **real-time monitoring** and compliance
-
-## 🚀 Quick Demo
+## 🚀 Quick Start
 
 ```bash
-# 1. Admin provisions developer+Q pair
-npm run demo
+# Navigate to your AWS serverless project
+cd my-sam-project
 
-# 2. Q creates REAL Lambda function
-no-wing chat
-> "create a Lambda function for user authentication"
-# → Deploys actual Lambda + API Gateway to AWS!
+# Configure and launch Q with project context
+no-wing setup
+
+# Q launches with full understanding of your project!
 ```
 
-## 🏗️ Architecture
+## 📋 Commands
 
+### Essential Commands
+```bash
+no-wing setup              # Configure and launch Q (recommended)
+no-wing configure          # Configure Q with project context
+no-wing launch             # Launch Q with guidance
+no-wing status             # Show project and Q status
 ```
-Admin → Provisions → Developer+Q Pair → Creates → Real AWS Lambda Functions
-                         ↓
-                   Monitored & Governed
-```
 
-### **Core Components:**
-- **VendingService**: Provisions developer+Q pairs with IAM
-- **AWSLambdaService**: Creates real Lambda functions with API Gateway
-- **MonitoringService**: Tracks Q activities for compliance
-- **IAMService**: Manages roles and permission boundaries
+### What Q Will Know About Your Project
+- **Project Type**: SAM, CDK, Serverless Framework, or generic
+- **AWS Context**: Your account ID and region
+- **Git Repository**: Branch, remote, and commit authorship
+- **Lambda Functions**: Existing functions and project structure
+- **SAM Configuration**: Template location and deployment settings
 
-## 🔐 Enterprise Security
+## 🛡️ Guardian Features
 
-### **IAM Separation:**
-- **Human developers** get project-specific AWS permissions
-- **Q agents** get limited, monitored Lambda creation permissions
-- **Permission boundaries** prevent privilege escalation
-- **Progressive capabilities**: Observer → Assistant → Partner
+### Project-Aware Q Responses
+Q understands your specific project and provides contextual help:
+- Creates Lambda functions that fit your project structure
+- Uses your AWS account and region for deployments
+- Follows your existing naming conventions and patterns
 
-### **Real-Time Monitoring:**
-- All Q activities logged and tracked
-- Cost monitoring with budget alerts
-- Anomaly detection for unusual behavior
-- Compliance reporting for audits
+### Proper Commit Authorship
+When Q makes changes to your code:
+- Commits are authored with your git credentials
+- Commit messages include `[Q]` prefix for tracking
+- Maintains proper git history and attribution
 
-## 🎯 Hackathon Requirements Met
+### SAM Deployment Integration
+Q can deploy your serverless applications:
+- Uses your configured AWS account and region
+- Applies proper IAM capabilities and tags
+- Follows your existing SAM configuration
 
-✅ **AWS Lambda as core service** - Q creates real Lambda functions  
-✅ **Lambda triggers** - API Gateway integration  
-✅ **Real-world business problem** - Enterprise developer onboarding  
-✅ **Multiple AWS services** - Lambda, IAM, API Gateway, CloudWatch  
-
-## 🛠️ Installation
+## 💡 Example Workflow
 
 ```bash
-git clone https://github.com/pchinjr/no-wing.git
-cd no-wing
-npm install
-npm run build
+# 1. Navigate to your SAM project
+cd my-serverless-api
+
+# 2. Set up Q Guardian
+no-wing setup
+
+# 3. Q launches with project context
+# Q now knows:
+# - This is a SAM project
+# - Your AWS account: 123456789012
+# - Your region: us-east-1
+# - Your git author: John Doe <john@example.com>
+# - Your existing Lambda functions
+
+# 4. Ask Q to help with your project
+Q: "create a new Lambda function for user authentication"
+# Q creates function, updates SAM template, commits with your authorship
+
+Q: "deploy this project"
+# Q runs: sam deploy with your AWS settings
+
+Q: "what Lambda functions do I have?"
+# Q lists your existing functions from the SAM template
 ```
 
-## 📋 Prerequisites
+## 🔧 Installation
+
+```bash
+npm install -g no-wing
+```
+
+## 📊 Project Analysis
+
+**no-wing** automatically detects:
+- **SAM Projects**: `template.yaml` or `template.yml`
+- **CDK Projects**: `cdk.json`
+- **Serverless Framework**: `serverless.yml`
+- **Git Repository**: Branch, remote, author information
+- **AWS Context**: Account ID and region from your credentials
+- **Lambda Functions**: Existing functions in your templates
+
+## 🎯 Benefits
+
+### For AWS Serverless Developers
+- **Faster Development**: Q understands your project immediately
+- **Consistent Deployments**: Uses your AWS settings automatically
+- **Proper Git History**: Q commits with your authorship
+- **Context-Aware Help**: Q provides relevant suggestions for your project
+
+### For Teams
+- **Standardized Q Usage**: Everyone uses the same project-aware Q
+- **Audit Trail**: All Q changes are properly attributed
+- **Project Consistency**: Q follows existing patterns and conventions
+
+## 🛠️ Requirements
 
 - Node.js 18+
 - AWS CLI configured with credentials
-- Permissions for Lambda, IAM, and API Gateway
-
-## 🎬 Usage
-
-### **Admin: Provision Developer+Q Pair**
-```bash
-no-wing admin provision-developer \
-  --email sarah@company.com \
-  --role junior \
-  --team backend \
-  --projects user-service
-```
-
-### **Developer: Onboard with Q**
-```bash
-no-wing setup --token <onboarding-token>
-no-wing chat
-```
-
-### **Q: Create Real Lambda Functions**
-```bash
-> "create a Lambda function for user authentication"
-> "create an API endpoint for data processing"  
-> "list my Lambda functions"
-> "analyze my current functions"
-```
-
-## 🏆 What Makes This Special
-
-### **Real AWS Integration**
-- Creates actual Lambda functions (not simulations)
-- Generates working Node.js code
-- Sets up API Gateway endpoints
-- Proper IAM execution roles
-
-### **Enterprise Ready**
-- Multi-tenant Q agent management
-- Proper security boundaries
-- Audit trails and compliance
-- Cost tracking and budgets
-
-### **AI-Powered Development**
-- Natural language Lambda creation
-- Company-aware Q assistants
-- Progressive capability earning
-- Safe experimentation environment
-
-## 🚀 Demo Script
-
-Run the complete hackathon demo:
-```bash
-./demo-hackathon.sh
-```
-
-This will:
-1. Provision a developer+Q pair
-2. Set up the developer environment  
-3. Have Q create a real Lambda function
-4. Show the deployed AWS resources
-
-## 📊 Example Output
-
-```
-🤖 Q: 🎉 Successfully created Lambda function "q-auth-123456"!
-
-🏗️ AWS Resources Created:
-   • AWS::Lambda::Function: q-auth-123456
-     ARN: arn:aws:lambda:us-east-1:123456789012:function:q-auth-123456
-     🌐 Endpoint: https://abc123.execute-api.us-east-1.amazonaws.com/prod
-     ⏱️ Deployment time: 3247ms
-     💰 Estimated cost: $0.050
-```
-
-## 🎯 Business Value
-
-- **Faster onboarding**: Developers productive in hours, not weeks
-- **Consistent practices**: Q enforces company standards  
-- **Reduced mentoring**: Senior developers focus on architecture
-- **Audit compliance**: Complete activity tracking
-- **Cost control**: Budget limits and monitoring
+- Git repository (recommended for full features)
+- SAM CLI (for SAM project deployments)
 
 ---
 
-**Enterprise-grade AI assistant provisioning with real AWS Lambda creation.** 🛫
+**🛫 no-wing: Your Guardian Angel for Amazon Q**
 
-*Built for the AWS Lambda Hackathon - Transforming developer onboarding with AI.*
+*Never start Q directly again. Let no-wing configure Q with your project context and AWS settings.*
