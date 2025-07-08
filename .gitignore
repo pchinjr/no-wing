@@ -32,9 +32,10 @@ build/
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs (but allow development audit log)
 logs/
 *.log
+!.no-wing/development-audit.log
 
 # Runtime data
 pids/
@@ -79,6 +80,7 @@ q-workspace/
 
 # But allow meta-development documentation (include these)
 !.no-wing/development-*.md
+!.no-wing/development-audit.log
 !.no-wing/config.json
 !.no-wing/status.md
 
