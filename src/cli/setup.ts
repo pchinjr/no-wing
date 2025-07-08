@@ -8,6 +8,7 @@ import inquirer from 'inquirer';
 import { ProjectDetector } from '../services/ProjectDetector.js';
 import { ServiceAccountManager } from '../services/ServiceAccountManager.js';
 import { PolicyGenerator } from '../services/PolicyGenerator.js';
+import { CredentialManager } from '../services/CredentialManager.js';
 
 interface SetupOptions {
   dryRun?: boolean;
@@ -59,7 +60,7 @@ export async function setupCommand(options: SetupOptions = {}) {
     const manager = new ServiceAccountManager(qConfig);
     const policySummary = manager.getPolicySummary();
     console.log(chalk.yellow('🔐 AWS Permissions:'));
-    policySummary.forEach(line => {
+    policySummary.forEach((line: string) => {
       console.log(`  ${line}`);
     });
     console.log('');
@@ -109,17 +110,45 @@ export async function setupCommand(options: SetupOptions = {}) {
       ]);
       includeAWS = setupAWS;
     }
-    
-    // Create the service account
-    spinner.text = 'Creating local user account...';
-    
+
+    // Validate AWS credentials if AWS setup is requested
     if (includeAWS) {
-      spinner.text = 'Creating service account with AWS integration...';
-      await manager.create(options.force, true);
+      spinner.stop();
+      
+      const credentialManager = new CredentialManager();
+      const credInfo = await credentialManager.checkAndPromptCredentials({
+        operation: 'setup',
+        requiresAdmin: true,
+        qUsername: qConfig.username
+      });
+      
+      if (!credInfo) {
+        console.log(chalk.red('❌ AWS credential validation failed or cancelled'));
+        console.log('');
+        console.log(chalk.yellow('💡 You can:'));
+        console.log('  • Set up AWS credentials and try again');
+        console.log('  • Run with --skip-aws to create local-only account');
+        console.log('');
+        
+        const guidance = credentialManager.getCredentialGuidance();
+        console.log(chalk.gray('AWS Credential Setup Guide:'));
+        guidance.forEach(line => {
+          console.log(chalk.gray(`  ${line}`));
+        });
+        
+        process.exit(1);
+      }
+
+      console.log(chalk.green('✅ AWS credentials validated successfully'));
+      console.log('');
+      
+      spinner = ora('Creating service account with AWS integration...').start();
     } else {
       spinner.text = 'Creating service account (local only)...';
-      await manager.create(options.force, false);
     }
+    
+    // Create the service account
+    await manager.create(options.force, includeAWS);
     
     spinner.succeed('Q service account created successfully!');
     
@@ -157,6 +186,13 @@ export async function setupCommand(options: SetupOptions = {}) {
       console.log(chalk.yellow('⚠️  AWS setup was skipped:'));
       console.log('  • Q cannot deploy AWS resources yet');
       console.log('  • Run setup again without --skip-aws to add AWS integration');
+      console.log('');
+    } else {
+      console.log(chalk.cyan('🛡️  Security Summary:'));
+      console.log('  • Your AWS credentials were used only for Q user creation');
+      console.log('  • Q now has its own separate AWS credentials');
+      console.log('  • Q will never use your personal AWS credentials');
+      console.log('  • All Q AWS actions will be attributed to Q, not you');
       console.log('');
     }
     
