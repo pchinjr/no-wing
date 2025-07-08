@@ -68,11 +68,19 @@ jspm_packages/
 .aws/
 aws-exports.js
 
-# no-wing specific
-.no-wing/
+# no-wing runtime files (exclude these)
+.no-wing/logs/
+.no-wing/temp/
+.no-wing/credentials
+.no-wing/workspace/
 q-workspace/
 *.sam-cache/
 .aws-sam/
+
+# But allow meta-development documentation (include these)
+!.no-wing/development-*.md
+!.no-wing/config.json
+!.no-wing/status.md
 
 # Test files
 test-*
