@@ -8,6 +8,7 @@ import inquirer from 'inquirer';
 import { ProjectDetector } from '../services/ProjectDetector.js';
 import { ServiceAccountManager } from '../services/ServiceAccountManager.js';
 import { QSessionManager } from '../services/QSessionManager.js';
+import { QCliDetector } from '../services/QCliDetector.js';
 
 interface LaunchOptions {
   background?: boolean;
@@ -21,6 +22,85 @@ export async function launchCommand(options: LaunchOptions = {}) {
   const spinner = ora('Preparing Q launch...').start();
 
   try {
+    // First, check if Q CLI is available
+    spinner.text = 'Checking Q CLI availability...';
+    const qDetector = new QCliDetector();
+    const qInfo = await qDetector.detectQCli();
+    
+    if (!qInfo.available) {
+      spinner.fail('Q CLI not found');
+      console.log('');
+      console.log(chalk.red('❌ Amazon Q CLI is not installed or not available'));
+      console.log(`   ${qInfo.error || 'Q CLI command not found'}`);
+      console.log('');
+      
+      // Provide installation guidance
+      const guidance = qDetector.getInstallationGuidance();
+      console.log(chalk.yellow(`📦 Q CLI Installation Guide (${guidance.platform}):`));
+      guidance.instructions.forEach(instruction => {
+        if (instruction.trim()) {
+          console.log(`   ${instruction}`);
+        } else {
+          console.log('');
+        }
+      });
+      
+      if (guidance.links.length > 0) {
+        console.log('');
+        console.log(chalk.cyan('🔗 Documentation:'));
+        guidance.links.forEach(link => {
+          console.log(`   ${link}`);
+        });
+      }
+      
+      console.log('');
+      console.log(chalk.gray('💡 After installing Q CLI, run this command again to launch Q with service account identity.'));
+      return;
+    }
+
+    // Check Q CLI compatibility
+    spinner.text = 'Validating Q CLI compatibility...';
+    const compatibility = await qDetector.checkCompatibility();
+    
+    if (!compatibility.compatible) {
+      spinner.fail('Q CLI compatibility issues');
+      console.log('');
+      console.log(chalk.yellow('⚠️  Q CLI compatibility issues detected:'));
+      console.log(`   Current version: ${compatibility.version}`);
+      console.log(`   Minimum required: ${compatibility.minVersion}`);
+      console.log('');
+      
+      if (compatibility.issues) {
+        console.log(chalk.red('Issues:'));
+        compatibility.issues.forEach(issue => {
+          console.log(`   • ${issue}`);
+        });
+        console.log('');
+      }
+      
+      console.log(chalk.cyan('🔧 To fix:'));
+      console.log('   • Update Q CLI to the latest version');
+      console.log('   • Check Q CLI documentation for compatibility requirements');
+      console.log('');
+      
+      const { proceed } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'proceed',
+          message: 'Try to launch anyway? (may not work correctly)',
+          default: false
+        }
+      ]);
+      
+      if (!proceed) {
+        console.log(chalk.gray('Launch cancelled due to compatibility issues'));
+        return;
+      }
+    } else {
+      spinner.text = `Q CLI detected (v${qInfo.version}) - compatible ✓`;
+    }
+
+    // Continue with existing service account validation...
     // Detect current project and generate Q config
     spinner.text = 'Detecting project configuration...';
     const detector = new ProjectDetector();
