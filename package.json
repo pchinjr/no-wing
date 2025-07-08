@@ -1,7 +1,7 @@
 {
   "name": "no-wing",
   "version": "1.0.0",
-  "description": "Guardian Angel for Amazon Q - Project-aware AI assistant for AWS serverless developers",
+  "description": "Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation",
   "main": "dist/index.js",
   "bin": {
     "no-wing": "./dist/cli/index.js"
@@ -14,12 +14,13 @@
   },
   "keywords": [
     "aws",
-    "serverless",
     "amazon-q",
-    "sam",
-    "guardian",
-    "ai-assistant",
-    "project-context"
+    "service-account",
+    "identity-management",
+    "security",
+    "audit",
+    "automation",
+    "serverless"
   ],
   "author": "Your Name",
   "license": "MIT",
@@ -28,6 +29,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-sts": "^3.0.0",
+    "@aws-sdk/client-iam": "^3.0.0",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "inquirer": "^8.2.6",
