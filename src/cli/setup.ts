@@ -142,15 +142,21 @@ export async function setupCommand(options: SetupOptions = {}) {
       console.log(chalk.green('✅ AWS credentials validated successfully'));
       console.log('');
       
-      spinner = ora('Creating service account with AWS integration...').start();
+      // Create new spinner for AWS integration
+      const awsSpinner = ora('Creating service account with AWS integration...').start();
+      
+      // Create the service account
+      await manager.create(options.force, includeAWS);
+      
+      awsSpinner.succeed('Q service account created successfully!');
     } else {
       spinner.text = 'Creating service account (local only)...';
+      
+      // Create the service account
+      await manager.create(options.force, includeAWS);
+      
+      spinner.succeed('Q service account created successfully!');
     }
-    
-    // Create the service account
-    await manager.create(options.force, includeAWS);
-    
-    spinner.succeed('Q service account created successfully!');
     
     console.log('');
     console.log(chalk.green('✅ Setup Complete'));
