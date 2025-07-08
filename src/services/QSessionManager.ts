@@ -57,7 +57,7 @@ export class QSessionManager {
     await this.logSessionStart(sessionConfig);
 
     // Launch Q process with service account context
-    await this.startQProcess(sessionConfig);
+    await this.startQProcess(sessionConfig, qCliArgs);
 
     this.currentSession = sessionConfig;
     return sessionConfig;
@@ -220,32 +220,57 @@ export class QSessionManager {
   /**
    * Start Q process with service account context
    */
-  private async startQProcess(sessionConfig: QSessionConfig): Promise<void> {
+  private async startQProcess(sessionConfig: QSessionConfig, qCliArgs: string[] = ['chat']): Promise<void> {
     const sessionDir = path.join(this.config.workspace, 'sessions', sessionConfig.sessionId);
     const envFile = path.join(sessionDir, 'q-environment');
     const projectDir = path.join(this.config.workspace, 'project');
 
-    // For now, we'll simulate launching Q by creating a shell session
-    // In production, this would launch the actual Amazon Q CLI or interface
-    this.qProcess = spawn('sudo', [
-      '-u', this.config.username,
-      '-i',
-      'bash', '-c',
-      `source ${envFile} && cd ${projectDir} && echo "Q Assistant session started as ${this.config.username}" && bash`
-    ], {
-      stdio: 'inherit',
+    // Build the Q CLI command with service account context
+    const qCliCommand = [
+      'sudo', '-u', this.config.username,
+      '-i', 'bash', '-c',
+      `source ${envFile} && cd ${projectDir} && q ${qCliArgs.join(' ')}`
+    ];
+
+    console.log(`🚀 Launching Q CLI as ${this.config.username}:`);
+    console.log(`   Command: q ${qCliArgs.join(' ')}`);
+    console.log(`   Working Directory: ${projectDir}`);
+    console.log(`   AWS Profile: ${this.config.awsProfile}`);
+    console.log(`   Git Identity: ${this.config.gitIdentity.name} <${this.config.gitIdentity.email}>`);
+    console.log('');
+
+    // Launch actual Q CLI with service account identity
+    this.qProcess = spawn(qCliCommand[0], qCliCommand.slice(1), {
+      stdio: 'inherit', // Pass through stdin/stdout/stderr for interactive Q CLI
       env: {
         ...process.env,
         HOME: this.config.homeDirectory,
         USER: this.config.username,
-        AWS_PROFILE: this.config.awsProfile
+        AWS_PROFILE: this.config.awsProfile,
+        // Ensure Q CLI uses service account git identity
+        GIT_AUTHOR_NAME: this.config.gitIdentity.name,
+        GIT_AUTHOR_EMAIL: this.config.gitIdentity.email,
+        GIT_COMMITTER_NAME: this.config.gitIdentity.name,
+        GIT_COMMITTER_EMAIL: this.config.gitIdentity.email
       }
     });
 
     this.qProcess.on('exit', async (code) => {
+      console.log('');
+      if (code === 0) {
+        console.log('✅ Q CLI session ended successfully');
+      } else {
+        console.log(`⚠️  Q CLI session ended with code ${code}`);
+      }
+      
       await this.logSessionEnd(sessionConfig, code);
       this.currentSession = undefined;
       this.qProcess = undefined;
+    });
+
+    this.qProcess.on('error', (error) => {
+      console.error('❌ Q CLI process error:', error.message);
+      this.logSessionError(sessionConfig, error);
     });
 
     this.qProcess.on('error', (error) => {
@@ -307,6 +332,31 @@ export class QSessionManager {
       project: this.config.projectName,
       duration: Date.now() - sessionConfig.startTime.getTime(),
       exitCode: exitCode || 0
+    };
+
+    await this.writeAuditLog(logEntry);
+  }
+
+  /**
+   * Log session error
+   */
+  private async logSessionError(sessionConfig: QSessionConfig, error: Error): Promise<void> {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      event: 'session_error',
+      sessionId: sessionConfig.sessionId,
+      user: this.config.username,
+      project: this.config.projectName,
+      error: {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      },
+      gitIdentity: {
+        name: this.config.gitIdentity.name,
+        email: this.config.gitIdentity.email
+      },
+      awsProfile: this.config.awsProfile
     };
 
     await this.writeAuditLog(logEntry);
