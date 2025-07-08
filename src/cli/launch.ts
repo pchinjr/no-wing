@@ -101,6 +101,36 @@ export async function launchCommand(options: LaunchOptions = {}) {
       spinner.text = `Q CLI detected (v${qInfo.version}) - compatible ✓`;
     }
 
+    // Parse and validate Q CLI arguments
+    spinner.text = 'Parsing Q CLI arguments...';
+    const { QCliArgumentParser } = await import('../services/QCliArgumentParser.js');
+    const argParser = new QCliArgumentParser();
+    
+    const parsedArgs = argParser.parseArguments(options.qCliArgs || []);
+    const validation = argParser.validateArguments(parsedArgs);
+    
+    if (!validation.valid) {
+      spinner.fail('Invalid Q CLI arguments');
+      console.log('');
+      console.log(chalk.red('❌ Q CLI argument validation failed:'));
+      validation.errors.forEach(error => {
+        console.log(`   • ${error}`);
+      });
+      console.log('');
+      console.log(chalk.cyan('💡 Q CLI Integration Help:'));
+      console.log(argParser.getUsageHelp());
+      return;
+    }
+    
+    // Show what Q CLI command will be executed
+    if (options.verbose || parsedArgs.command !== 'chat') {
+      const qCliCommand = argParser.buildQCliCommand(parsedArgs);
+      console.log('');
+      console.log(chalk.yellow('🎯 Q CLI Command:'));
+      console.log(`   q ${qCliCommand.join(' ')}`);
+      console.log('');
+    }
+
     // Continue with existing service account validation...
     // Detect current project and generate Q config
     spinner.text = 'Detecting project configuration...';
@@ -239,7 +269,8 @@ export async function launchCommand(options: LaunchOptions = {}) {
     const launchSpinner = ora('Launching Q with service account identity...').start();
     
     try {
-      const sessionConfig = await sessionManager.launchQ(process.cwd());
+      const qCliCommand = argParser.buildQCliCommand(parsedArgs);
+      const sessionConfig = await sessionManager.launchQ(process.cwd(), qCliCommand);
       
       launchSpinner.succeed('Q launched successfully!');
       

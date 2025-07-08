@@ -34,7 +34,7 @@ export class QSessionManager {
   /**
    * Launch Q with service account identity
    */
-  async launchQ(workingDirectory: string = process.cwd()): Promise<QSessionConfig> {
+  async launchQ(workingDirectory: string = process.cwd(), qCliArgs?: string[]): Promise<QSessionConfig> {
     // Validate service account exists and is healthy
     await this.validateServiceAccount();
 
