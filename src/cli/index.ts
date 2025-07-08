@@ -6,13 +6,21 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
 
 const program = new Command();
 
 program
   .name('no-wing')
   .description('🛫 Q Service Account Manager - Give Amazon Q its own identity')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 // Setup Q service account for current project
 program
