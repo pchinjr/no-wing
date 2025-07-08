@@ -29,9 +29,17 @@ npm install
 npm run build
 npm test
 
-# Test CLI locally
-node dist/cli/index.js --help
+# Test CLI locally (requires sudo for service account operations)
+sudo node dist/cli/index.js --help
+sudo node dist/cli/index.js setup --skip-aws    # Test without AWS
+sudo node dist/cli/index.js launch --verbose help  # Test Q CLI integration
+
+# Alternative: Use full node path if sudo can't find node
+which node  # Get full path
+sudo /full/path/to/node dist/cli/index.js setup --skip-aws
 ```
+
+> **Testing Note**: Service account functionality requires sudo privileges. Use `--skip-aws` for local testing without AWS credentials.
 
 ## 📋 Development Workflow
 
@@ -104,6 +112,33 @@ npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests only
 npm run test:coverage      # With coverage report
 ```
+
+### Testing Service Account Functionality
+
+Service account features require sudo privileges for testing:
+
+```bash
+# Build first
+npm run build
+
+# Test service account setup
+sudo node dist/cli/index.js setup --skip-aws
+
+# Test Q CLI integration (without actual Q CLI)
+sudo node dist/cli/index.js launch --verbose help
+
+# Test status checks
+sudo node dist/cli/index.js status --verbose
+
+# Clean up after testing
+sudo node dist/cli/index.js teardown --force
+```
+
+**Testing Environment Requirements:**
+- Linux or macOS (WSL2 supported)
+- Node.js 18+
+- sudo privileges
+- No actual Q CLI installation required for integration testing
 
 ## 📝 Code Style
 

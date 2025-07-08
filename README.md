@@ -42,22 +42,25 @@ npx no-wing --help
 
 ```bash
 # 1. Set up Q service account for your project
-no-wing setup
+sudo no-wing setup               # Requires sudo for user account creation
 
 # 2. Launch Q CLI with service account identity
-no-wing launch                    # Start Q chat session
-no-wing launch chat --verbose     # Q CLI with arguments
-no-wing launch help               # Show Q CLI help
+sudo no-wing launch              # Start Q chat session
+sudo no-wing launch chat --verbose  # Q CLI with arguments
+sudo no-wing launch help         # Show Q CLI help
 
 # 3. Check service account status
-no-wing status
+no-wing status                   # Basic status check
+sudo no-wing status --verbose    # Detailed status (may require sudo)
 
 # 4. View Q session activity
 no-wing audit
 
 # 5. Clean up when done
-no-wing teardown
+sudo no-wing teardown            # Requires sudo for user removal
 ```
+
+> **Note**: Service account operations require `sudo` privileges for creating/managing local user accounts and accessing service account files.
 
 ## ✨ Key Features
 
@@ -85,48 +88,101 @@ no-wing teardown
 - **CDK Projects**: CloudFormation and CDK-specific permissions
 - **Generic Projects**: Basic AWS permissions for general use
 
+## 🔐 Permissions and Sudo Requirements
+
+### Why Sudo is Required
+
+no-wing creates and manages dedicated local user accounts for Q service accounts. This requires administrative privileges for:
+
+- **User Account Management**: Creating, configuring, and removing local users
+- **File System Access**: Setting up home directories and workspace isolation
+- **Service Account Files**: Accessing and configuring service account-specific files
+- **Process Execution**: Running Q CLI as the dedicated service account user
+
+### Commands Requiring Sudo
+
+| Command | Sudo Required | Reason |
+|---------|---------------|---------|
+| `setup` | ✅ Always | Creates local user accounts and configures files |
+| `launch` | ⚠️ Usually | Health checks and Q CLI execution with service account identity |
+| `status --verbose` | ⚠️ Sometimes | Accessing service account configuration files |
+| `teardown` | ✅ Always | Removes local user accounts and cleans up files |
+| `audit` | ❌ No | Reads audit logs accessible to current user |
+
+### Alternative: Group Permissions
+
+For development environments, you can configure group permissions to reduce sudo requirements:
+
+```bash
+# Add your user to the service account group (after setup)
+sudo usermod -a -G q-assistant-{project} $USER
+
+# Make service account files group-readable
+sudo chmod -R g+r /home/q-assistant-{project}/
+
+# Start a new shell session for group membership to take effect
+newgrp q-assistant-{project}
+```
+
+> **Security Note**: Group permissions reduce security isolation. Use sudo approach for production environments.
+
 ## 📋 Commands
 
 ### Setup Commands
 
 ```bash
 # Set up Q service account for current project
-no-wing setup
+sudo no-wing setup
 
 # Set up with custom AWS profile or region
-no-wing setup --aws-profile my-profile --region us-west-2
+sudo no-wing setup --aws-profile my-profile --region us-west-2
+
+# Set up without AWS integration (for testing)
+sudo no-wing setup --skip-aws
+
+# Show what would be created without making changes
+sudo no-wing setup --dry-run
+
+# Force recreate existing service account
+sudo no-wing setup --force
 ```
+
+> **Important**: Setup requires `sudo` privileges to create local user accounts and configure service account files.
 
 ### Launch Commands
 
 ```bash
 # Launch Q CLI with service account identity
-no-wing launch                    # Default: start chat session
-no-wing launch chat               # Explicit chat session
-no-wing launch chat --verbose     # Chat with verbose output
-no-wing launch help               # Show Q CLI help
-no-wing launch --version          # Show Q CLI version
+sudo no-wing launch              # Default: start chat session
+sudo no-wing launch chat         # Explicit chat session
+sudo no-wing launch chat --verbose  # Chat with verbose output
+sudo no-wing launch help         # Show Q CLI help
+sudo no-wing launch --version    # Show Q CLI version
 
 # Launch with no-wing options
-no-wing launch --verbose chat     # Show launch details + Q CLI
-no-wing launch --background       # Launch without prompts
+sudo no-wing launch --verbose chat     # Show launch details + Q CLI
+sudo no-wing launch --background       # Launch without prompts
 ```
+
+> **Note**: Launch may require `sudo` for service account health checks and Q CLI execution with proper identity.
 
 ### Management Commands
 
 ```bash
 # Check service account status
 no-wing status                    # Basic status
-no-wing status --verbose          # Detailed status
+sudo no-wing status --verbose     # Detailed status (may require sudo)
 
 # View Q session activity
 no-wing audit                     # Recent Q sessions
 no-wing audit --all               # All Q session history
 
 # Clean up service account
-no-wing teardown                  # Remove Q service account
-no-wing teardown --force          # Force removal without prompts
+sudo no-wing teardown             # Remove Q service account
+sudo no-wing teardown --force     # Force removal without prompts
 ```
+
+> **Note**: Some status checks and all teardown operations require `sudo` for accessing service account files and removing user accounts.
 
 ## 🏗️ How It Works
 
@@ -228,37 +284,64 @@ npm run test:coverage
 ### Q CLI Not Found
 ```bash
 # Check Q CLI installation
-no-wing launch --verbose
+sudo no-wing launch --verbose
 
 # Install Q CLI (example for macOS)
 brew install amazon-q
 
-# Or download from AWS
+# Install Q CLI (Linux)
+# Download from AWS and follow installation instructions
 # Visit: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html
 ```
 
 ### Service Account Issues
 ```bash
 # Check service account status
-no-wing status --verbose
+sudo no-wing status --verbose
 
 # Recreate service account
-no-wing teardown && no-wing setup
+sudo no-wing teardown --force && sudo no-wing setup
 
-# Check AWS credentials
+# Check AWS credentials (if AWS integration enabled)
 aws sts get-caller-identity --profile q-assistant-{project}
 ```
 
 ### Permission Issues
 ```bash
-# Verify AWS permissions
-no-wing status --verbose
+# Most common issue: Missing sudo
+sudo no-wing setup    # Instead of: no-wing setup
+sudo no-wing launch    # Instead of: no-wing launch
 
-# Check IAM user policies
-aws iam list-attached-user-policies --user-name q-assistant-{project}
+# Check if service account user exists
+id q-assistant-{project}
 
-# Update permissions (recreate service account)
-no-wing teardown && no-wing setup
+# Check service account home directory
+sudo ls -la /home/q-assistant-{project}/
+
+# Verify git configuration
+sudo cat /home/q-assistant-{project}/.gitconfig
+```
+
+### Node.js Path Issues with Sudo
+```bash
+# If you get "node: command not found" with sudo
+which node
+# Use full path: sudo /path/to/node dist/cli/index.js setup
+
+# Or add node to sudo PATH
+sudo env "PATH=$PATH" no-wing setup
+```
+
+### Health Check Failures
+```bash
+# Service account exists but health check fails
+sudo no-wing status --verbose    # Check detailed status
+sudo no-wing setup --force       # Recreate service account
+
+# Alternative: Configure group permissions (development only)
+sudo usermod -a -G q-assistant-{project} $USER
+sudo chmod -R g+r /home/q-assistant-{project}/
+newgrp q-assistant-{project}
 ```
 
 ## 🤝 Contributing
@@ -289,9 +372,13 @@ npm run build
 # Run tests
 npm test
 
-# Test locally
-node dist/cli/index.js --help
+# Test locally (requires sudo for service account operations)
+sudo node dist/cli/index.js --help
+sudo node dist/cli/index.js setup --skip-aws    # Test without AWS
+sudo node dist/cli/index.js launch --verbose help  # Test Q CLI integration
 ```
+
+> **Development Note**: Testing service account functionality requires sudo privileges. Use `--skip-aws` for local testing without AWS credentials.
 
 ## 📚 Documentation
 
