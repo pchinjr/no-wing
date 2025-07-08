@@ -4,6 +4,10 @@
 
 Configure Amazon Q with its own local user account, AWS credentials, and git identity per project. Q operates as a dedicated service account with proper attribution and isolated permissions - never masquerading as you again.
 
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/pchinjr/no-wing/releases/tag/v0.2.0)
+[![Tests](https://img.shields.io/badge/tests-295%20passing-green.svg)](#testing)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 ## 🎯 The Problem
 
 When you give Amazon Q command line access, it performs actions using YOUR identity:
@@ -19,278 +23,335 @@ When you give Amazon Q command line access, it performs actions using YOUR ident
 - ✅ Q has its own local user account (`q-assistant-{project}`)
 - ✅ Q commits with its own git identity (`Q Assistant (project)`)
 - ✅ Q uses its own AWS credentials with scoped permissions
-- ✅ Clear separation between human and AI actions
-- ✅ Isolated blast radius per project
-- ✅ Complete audit trail of all Q operations
+- ✅ Complete audit trail of Q vs human actions
+- ✅ **NEW**: Seamless Q CLI integration with identity separation
 
 ## 🚀 Quick Start
 
-```bash
-# Navigate to your AWS serverless project
-cd my-sam-project
+### Installation
 
-# Set up Q as a service account for this project
+```bash
+# Install no-wing globally
+npm install -g no-wing
+
+# Or run directly with npx
+npx no-wing --help
+```
+
+### Basic Usage
+
+```bash
+# 1. Set up Q service account for your project
 no-wing setup
 
-# Launch Q with its own identity
-no-wing launch
+# 2. Launch Q CLI with service account identity
+no-wing launch                    # Start Q chat session
+no-wing launch chat --verbose     # Q CLI with arguments
+no-wing launch help               # Show Q CLI help
 
-# Q now operates with complete identity separation!
-# - Local user: q-assistant-my-sam-project
-# - Git commits: "Q Assistant (my-sam-project) <q-assistant+my-sam-project@no-wing.dev>"
-# - AWS profile: q-assistant-my-sam-project
-# - Isolated workspace with project copy
+# 3. Check service account status
+no-wing status
+
+# 4. View Q session activity
+no-wing audit
+
+# 5. Clean up when done
+no-wing teardown
 ```
 
-## 📋 Core Commands
+## ✨ Key Features
+
+### 🔐 Complete Identity Separation
+- **Local User Account**: Q runs as `q-assistant-{project}` user
+- **Git Identity**: Q commits as `Q Assistant (project) <q-assistant+project@no-wing.dev>`
+- **AWS Credentials**: Q uses dedicated IAM user with project-specific permissions
+- **Workspace Isolation**: Q operates in isolated workspace with project files
+
+### 🎯 Seamless Q CLI Integration
+- **Real Q CLI Execution**: No simulation - actual Q CLI with service account identity
+- **Full Argument Support**: Pass any Q CLI commands and options
+- **Interactive Experience**: Complete stdio pass-through for Q CLI chat
+- **Security Validation**: Dangerous options blocked (--profile, --credentials)
+- **Graceful Fallback**: Helpful guidance when Q CLI not installed
+
+### 📊 Comprehensive Auditing
+- **Session Logging**: Complete audit trail of Q activities
+- **Git Attribution**: Clear separation of human vs Q commits
+- **AWS Activity**: Q actions tracked under dedicated IAM user
+- **Project Isolation**: Each project has its own Q service account
+
+### 🛠️ Smart Project Detection
+- **SAM Projects**: Automatic Lambda and API Gateway permissions
+- **CDK Projects**: CloudFormation and CDK-specific permissions
+- **Generic Projects**: Basic AWS permissions for general use
+- **Custom Policies**: Support for project-specific permission requirements
+
+## 🏗️ Architecture
+
+### System Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Developer                             │
+│                           │                                 │
+│                    runs no-wing                             │
+│                           │                                 │
+├─────────────────────────────────────────────────────────────┤
+│                     no-wing CLI                             │
+│  ┌─────────────────┬─────────────────┬─────────────────┐   │
+│  │ ProjectDetector │ ServiceAccount  │ QSessionManager │   │
+│  │                 │ Manager         │                 │   │
+│  └─────────────────┴─────────────────┴─────────────────┘   │
+│                           │                                 │
+├─────────────────────────────────────────────────────────────┤
+│                  Service Account Layer                      │
+│  ┌─────────────────┬─────────────────┬─────────────────┐   │
+│  │ Local User      │ Git Identity    │ AWS Credentials │   │
+│  │ q-assistant-*   │ Q Assistant     │ IAM User        │   │
+│  └─────────────────┴─────────────────┴─────────────────┘   │
+│                           │                                 │
+├─────────────────────────────────────────────────────────────┤
+│                    Amazon Q CLI                             │
+│              (runs with service account identity)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Services
+
+- **ProjectDetector**: Smart project type detection (SAM, CDK, generic)
+- **ServiceAccountManager**: Complete service account lifecycle management
+- **AWSIdentityManager**: AWS IAM user and credential management
+- **PolicyGenerator**: Project-specific AWS permission generation
+- **QSessionManager**: Q CLI session management with identity isolation
+- **QCliDetector**: Q CLI availability and compatibility checking
+- **QCliArgumentParser**: Secure argument parsing and validation
+
+## 📋 Commands
+
+### Setup Commands
 
 ```bash
-no-wing setup              # Create Q service account for current project
-no-wing status             # Show Q service account health and status
-no-wing launch             # Launch Q with service account identity
-no-wing audit              # Show Q's session history and activity
-no-wing cleanup            # Remove Q service account and resources
-no-wing help               # Show detailed help and usage examples
-```
-
-### Command Options
-
-```bash
-# Setup options
-no-wing setup --dry-run    # Show what would be created without making changes
-no-wing setup --force      # Recreate existing service account
-no-wing setup --skip-aws   # Create local-only account (no AWS integration)
-
-# Status options  
-no-wing status --verbose   # Show detailed configuration and permissions
-no-wing status --skip-aws-check  # Skip AWS validation (faster)
-
-# Audit options
-no-wing audit --lines 10   # Show last 10 log entries
-no-wing audit --verbose    # Show detailed session information
-no-wing audit --session-id <id>  # Filter by specific session
-
-# Launch options
-no-wing launch --background  # Launch without interactive prompts
-no-wing launch --verbose    # Show detailed technical information
-```
-
-## 🏗️ What no-wing Creates
-
-### Complete Q Identity Stack
-
-```
-🧑 Human User                    🤖 Q Assistant
-├── Local user: your-username    ├── Local user: q-assistant-{project}
-├── Git identity: Your Name      ├── Git identity: "Q Assistant ({project})"
-├── AWS profile: your-profile    ├── AWS profile: q-assistant-{project}
-└── Workspace: your-directory    └── Workspace: /home/q-assistant-{project}/workspace
-```
-
-### Local Service Account
-```
-q-assistant-{project}/
-├── Home: /home/q-assistant-{project}/
-├── Shell: /bin/bash with Q environment
-├── Workspace: /home/q-assistant-{project}/workspace/
-├── Sessions: /home/q-assistant-{project}/workspace/sessions/
-└── Logs: /home/q-assistant-{project}/.no-wing/logs/
-```
-
-### AWS Identity
-```
-AWS Profile: q-assistant-{project}
-├── IAM User: q-assistant-{project} (tagged with no-wing metadata)
-├── Access Keys: Dedicated to this project
-├── Policies: Project-specific permissions (SAM/CDK/Serverless/Generic)
-├── Path: /no-wing/ (organized IAM structure)
-└── Region: Configurable (default: us-east-1)
-```
-
-### Git Identity
-```
-Git Config:
-├── Name: "Q Assistant ({project})"
-├── Email: "q-assistant+{project}@no-wing.dev"
-├── Default Branch: main
-├── Editor: nano
-└── Commit Attribution: Always shows Q, never human
-```
-
-## 🔐 Security Model
-
-### Bootstrap Approach
-```bash
-# Your credentials used ONLY for Q identity creation
-export AWS_PROFILE=your-admin-profile
-no-wing setup  # Creates Q's IAM user with your credentials
-
-# Q uses its OWN credentials for all operations
-no-wing launch  # Q operates independently with q-assistant-{project} profile
-```
-
-### Least Privilege by Project Type
-- **SAM Projects**: CloudFormation, Lambda, API Gateway, S3 + IAM role management
-- **CDK Projects**: PowerUser access + additional IAM permissions for CDK operations
-- **Serverless Framework**: Lambda, API Gateway, CloudFormation + Events/Scheduler
-- **Generic Projects**: ReadOnly access + basic deployment permissions
-
-### Complete Audit Trail
-```json
-{
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "event": "session_start",
-  "sessionId": "q-abc123-def456",
-  "user": "q-assistant-my-project",
-  "project": "my-project",
-  "gitIdentity": {
-    "name": "Q Assistant (my-project)",
-    "email": "q-assistant+my-project@no-wing.dev"
-  },
-  "awsProfile": "q-assistant-my-project"
-}
-```
-
-### Blast Radius Containment
-- Q compromise only affects current project
-- No cross-project credential sharing
-- Easy to revoke/recreate Q identity per project
-- Isolated workspaces prevent cross-contamination
-
-## 📊 Smart Project Detection
-
-**no-wing** automatically detects project type and configures appropriate permissions:
-
-| Project Type | Detection | Deploy Command | Key Permissions |
-|--------------|-----------|----------------|-----------------|
-| **SAM** | `template.yaml` | `sam deploy` | Lambda, API Gateway, CloudFormation, S3 |
-| **CDK** | `cdk.json` | `cdk deploy` | PowerUser + IAM for CDK operations |
-| **Serverless** | `serverless.yml` | `serverless deploy` | Lambda, API Gateway, Events, CloudFormation |
-| **Generic** | Fallback | `aws cloudformation deploy` | ReadOnly + basic deployment |
-
-## 🔐 AWS Credential Handling
-
-### Clear Communication
-When AWS credentials are needed, no-wing explains exactly why:
-
-```
-🔐 AWS Credentials Required
-
-no-wing needs AWS credentials to:
-  • Create IAM user for Q service account
-  • Generate access keys for Q
-  • Attach appropriate policies to Q
-  • Set up AWS profile: q-assistant-my-project
-
-🛡️  Security Notes:
-  • Your credentials are only used for this operation
-  • Q will get its own separate AWS credentials
-  • Q will never use your personal credentials
-  • All Q actions will be clearly attributed to Q
-```
-
-### Credential Resolution Order
-1. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-2. AWS profile (`AWS_PROFILE` or `--profile`)
-3. IAM role (if running on EC2/Lambda)
-4. Default profile (`~/.aws/credentials`)
-
-## 🎬 Complete User Journey
-
-### 1. Project Setup
-```bash
-cd my-sam-project
+# Set up Q service account for current project
 no-wing setup
-# ✅ Creates q-assistant-my-sam-project user
-# ✅ Sets up git identity: "Q Assistant (my-sam-project)"
-# ✅ Creates AWS IAM user with SAM permissions
-# ✅ Configures isolated workspace
+
+# Set up with custom AWS profile
+no-wing setup --aws-profile my-profile
+
+# Set up with specific AWS region
+no-wing setup --region us-west-2
 ```
 
-### 2. Q Launch
+### Launch Commands
+
 ```bash
-no-wing launch
-# ✅ Validates service account health
-# ✅ Shows Q identity summary
-# ✅ Launches Q in isolated environment
-# ✅ Q operates with complete identity separation
+# Launch Q CLI with service account identity
+no-wing launch                    # Default: start chat session
+no-wing launch chat               # Explicit chat session
+no-wing launch chat --verbose     # Chat with verbose output
+no-wing launch help               # Show Q CLI help
+no-wing launch --version          # Show Q CLI version
+
+# Launch with no-wing options
+no-wing launch --verbose chat     # Show launch details + Q CLI
+no-wing launch --background       # Launch without prompts
 ```
 
-### 3. Monitoring & Audit
+### Management Commands
+
 ```bash
-no-wing status    # Check Q service account health
-no-wing audit     # View all Q session activity
-# ✅ Complete transparency of Q operations
-# ✅ Session tracking and statistics
-# ✅ Clear attribution of all Q actions
+# Check service account status
+no-wing status                    # Basic status
+no-wing status --verbose          # Detailed status with all components
+
+# View Q session activity
+no-wing audit                     # Recent Q sessions
+no-wing audit --all               # All Q session history
+
+# Clean up service account
+no-wing teardown                  # Remove Q service account
+no-wing teardown --force          # Force removal without prompts
+```
+
+### Utility Commands
+
+```bash
+# Show version information
+no-wing --version
+
+# Show help
+no-wing --help
+no-wing launch --help
+
+# Easter egg
+no-wing nothing                   # Jon Snow knows nothing
+```
+
+## 🔧 Configuration
+
+### Project Types
+
+no-wing automatically detects your project type and configures appropriate permissions:
+
+#### SAM Projects
+- **Detection**: `template.yaml` or `template.yml`
+- **Permissions**: Lambda, API Gateway, CloudFormation, S3, IAM
+- **Deploy Command**: `sam deploy`
+
+#### CDK Projects  
+- **Detection**: `cdk.json`
+- **Permissions**: CloudFormation, CDK, S3, IAM, EC2, Lambda
+- **Deploy Command**: `cdk deploy`
+
+#### Generic Projects
+- **Detection**: Fallback for any project
+- **Permissions**: Basic AWS services (S3, Lambda, CloudFormation)
+- **Deploy Command**: Custom or manual
+
+### Service Account Structure
+
+```
+/home/q-assistant-{project}/
+├── .aws/
+│   ├── credentials              # Q's AWS credentials
+│   └── config                   # Q's AWS configuration
+├── .gitconfig                   # Q's git identity
+├── .no-wing/
+│   ├── logs/
+│   │   └── q-sessions.log       # Q session audit log
+│   └── workspace/
+│       ├── project/             # Synced project files
+│       └── sessions/            # Q session data
+└── .bashrc                      # Q's shell environment
 ```
 
 ## 🧪 Testing
 
-```bash
-npm test                    # Run all tests
-npm run test:tape          # Run tape tests specifically
-npm run build              # Build TypeScript
-
-# Current test coverage: 118 tests passing
-# - Project detection and configuration
-# - Service account management
-# - AWS identity management
-# - Q session management
-# - Credential handling
-# - Audit logging
-```
-
-## 🛠️ Requirements
-
-- **Node.js 18+** - For running no-wing CLI
-- **sudo access** - For creating local user accounts
-- **AWS CLI configured** - With admin permissions for initial Q setup
-- **Git repository** - For Q git identity setup (optional but recommended)
-
-## 📦 Installation
+no-wing includes comprehensive test coverage:
 
 ```bash
-# Clone and build (npm package coming soon)
-git clone https://github.com/pchinjr/no-wing.git
-cd no-wing
-npm install
-npm run build
+# Run all tests
+npm test
 
-# Make CLI available globally
-npm link
+# Run specific test suites
+npm run test:unit                 # Unit tests only
+npm run test:integration          # Integration tests only
 
-# Or run directly
-node dist/cli/index.js --help
+# Test coverage
+npm run test:coverage
 ```
 
-## 🎯 Status: Production Ready
+**Test Statistics:**
+- **295 total tests** with 100% pass rate
+- **Unit tests**: Core service functionality
+- **Integration tests**: End-to-end workflows
+- **Security tests**: Permission and validation logic
 
-**✅ Complete Implementation**
-- ✅ **Phase 1**: Local user management & git identity
-- ✅ **Phase 2**: AWS integration with IAM users & policies  
-- ✅ **Phase 3**: Q session management & identity isolation
-- ✅ **Credential Handling**: Clear AWS credential prompting
-- ✅ **118 tests passing**: Production-ready reliability
+## 🛡️ Security
 
-**🛫 Mission Accomplished**: Q now operates with its own identity - never masquerading as human again!
+### Identity Separation
+- Q operates under dedicated local user account
+- Complete filesystem isolation from your user
+- Separate AWS credentials with minimal required permissions
+- Git commits clearly attributed to Q Assistant
+
+### Permission Management
+- Project-specific AWS policies (principle of least privilege)
+- Dangerous Q CLI options blocked (--profile, --credentials)
+- AWS credentials never exposed to Q CLI directly
+- Complete audit trail of all Q activities
+
+### Validation
+- Q CLI argument validation and sanitization
+- AWS credential validation before use
+- Project type validation and permission scoping
+- Service account health checking
+
+## 🔍 Troubleshooting
+
+### Q CLI Not Found
+```bash
+# Check Q CLI installation
+no-wing launch --verbose
+
+# Install Q CLI (example for macOS)
+brew install amazon-q
+
+# Or download from AWS
+# Visit: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html
+```
+
+### Service Account Issues
+```bash
+# Check service account status
+no-wing status --verbose
+
+# Recreate service account
+no-wing teardown && no-wing setup
+
+# Check AWS credentials
+aws sts get-caller-identity --profile q-assistant-{project}
+```
+
+### Permission Issues
+```bash
+# Verify AWS permissions
+no-wing status --verbose
+
+# Check IAM user policies
+aws iam list-attached-user-policies --user-name q-assistant-{project}
+
+# Update permissions (recreate service account)
+no-wing teardown && no-wing setup
+```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our development approach:
-- Small, focused commits with clear purposes
-- Comprehensive test coverage for all features
-- Clear documentation and user communication
-- Security-first design principles
+We welcome contributions! Please see our contributing guidelines:
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** with tests
+4. **Run the test suite**: `npm test`
+5. **Commit your changes**: `git commit -m 'Add amazing feature'`
+6. **Push to the branch**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/pchinjr/no-wing.git
+cd no-wing
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run tests
+npm test
+
+# Test locally
+node dist/cli/index.js --help
+```
 
 ## 📄 License
 
-MIT License - see [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Amazon Q Developer** - The AI assistant that inspired this security solution
+- **AWS IAM** - For providing the foundation for secure service account management
+- **The Node.js Community** - For the excellent tooling and libraries
+
+## 📚 Additional Resources
+
+- **[Q CLI Integration Guide](Q_CLI_INTEGRATION.md)** - Technical details of Q CLI integration
+- **[AWS Q Developer Documentation](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/)** - Official Q documentation
+- **[AWS IAM Best Practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)** - Security guidelines
 
 ---
 
-**🛫 no-wing: Q Service Account Manager**
-
-*Give Amazon Q its own identity. Secure, auditable, isolated.*
-
-**The chicken-and-egg problem is solved. Q has its own wings!**
+**🛫 Give Amazon Q its own wings - secure, auditable, and properly attributed.**
