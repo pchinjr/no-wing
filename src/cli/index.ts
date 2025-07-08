@@ -87,6 +87,15 @@ program
     await launchCommand();
   });
 
+// Easter egg: Jon Snow knows nothing
+program
+  .command('nothing')
+  .description('❄️ You know nothing...')
+  .action(async () => {
+    const { nothingCommand } = await import('./nothing.js');
+    await nothingCommand();
+  });
+
 // Help command
 program
   .command('help')
