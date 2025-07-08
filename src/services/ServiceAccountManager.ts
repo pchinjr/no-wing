@@ -6,6 +6,8 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { QServiceAccountConfig } from './ProjectDetector.js';
+import { AWSIdentityManager, type AWSCredentials } from './AWSIdentityManager.js';
+import { PolicyGenerator } from './PolicyGenerator.js';
 
 export interface ServiceAccountStatus {
   exists: boolean;
@@ -15,10 +17,13 @@ export interface ServiceAccountStatus {
   awsConfigured: boolean;
   workspace: boolean;
   healthy: boolean;
+  awsUser?: boolean;
+  awsCredentials?: boolean;
 }
 
 export class ServiceAccountManager {
   private config: QServiceAccountConfig;
+  private awsManager?: AWSIdentityManager;
 
   constructor(config: QServiceAccountConfig) {
     this.config = config;
@@ -27,7 +32,7 @@ export class ServiceAccountManager {
   /**
    * Create the complete Q service account
    */
-  async create(force: boolean = false): Promise<void> {
+  async create(force: boolean = false, includeAWS: boolean = true): Promise<void> {
     if (!force) {
       const status = await this.getStatus();
       if (status.exists) {
@@ -47,8 +52,41 @@ export class ServiceAccountManager {
     // Setup workspace
     await this.setupWorkspace();
     
-    // Note: AWS configuration will be handled separately
-    // as it requires AWS SDK integration
+    // Setup AWS identity if requested
+    if (includeAWS) {
+      await this.setupAWSIdentity();
+    }
+  }
+
+  /**
+   * Setup AWS identity for the service account
+   */
+  async setupAWSIdentity(): Promise<void> {
+    // Generate policies based on project type
+    const policySet = PolicyGenerator.generatePolicies(this.config.projectType);
+    
+    // Initialize AWS manager
+    this.awsManager = new AWSIdentityManager({
+      username: this.config.username,
+      policies: policySet.managedPolicies,
+      region: 'us-east-1', // TODO: Make configurable
+      homeDirectory: this.config.homeDirectory
+    });
+
+    // Create IAM user
+    await this.awsManager.createIAMUser();
+    
+    // Attach policies
+    await this.awsManager.attachPolicies();
+    
+    // Create access keys
+    const credentials = await this.awsManager.createAccessKeys();
+    
+    // Setup AWS profile
+    await this.awsManager.setupAWSProfile(credentials);
+    
+    // Set proper ownership
+    await this.executeAsRoot(`chown -R ${this.config.username}:${this.config.username} ${path.join(this.config.homeDirectory, '.aws')}`);
   }
 
   /**
@@ -60,6 +98,28 @@ export class ServiceAccountManager {
     const gitConfigured = await this.checkGitConfiguration();
     const awsConfigured = await this.checkAWSConfiguration();
     const workspace = await this.checkWorkspace();
+    
+    // Check AWS user existence
+    let awsUser = false;
+    let awsCredentials = false;
+    
+    if (awsConfigured) {
+      try {
+        const policySet = PolicyGenerator.generatePolicies(this.config.projectType);
+        this.awsManager = new AWSIdentityManager({
+          username: this.config.username,
+          policies: policySet.managedPolicies,
+          region: 'us-east-1',
+          homeDirectory: this.config.homeDirectory
+        });
+        
+        awsUser = await this.awsManager.userExists();
+        awsCredentials = await this.checkAWSCredentials();
+      } catch (error) {
+        // AWS check failed, but local AWS config exists
+        awsCredentials = true;
+      }
+    }
 
     return {
       exists: localUser,
@@ -68,7 +128,9 @@ export class ServiceAccountManager {
       gitConfigured,
       awsConfigured,
       workspace,
-      healthy: localUser && homeDirectory && gitConfigured && workspace
+      awsUser,
+      awsCredentials,
+      healthy: localUser && homeDirectory && gitConfigured && workspace && awsConfigured
     };
   }
 
@@ -76,6 +138,25 @@ export class ServiceAccountManager {
    * Remove the Q service account and all associated resources
    */
   async cleanup(keepLogs: boolean = false): Promise<void> {
+    // Clean up AWS resources first
+    if (this.awsManager || await this.checkAWSConfiguration()) {
+      try {
+        if (!this.awsManager) {
+          const policySet = PolicyGenerator.generatePolicies(this.config.projectType);
+          this.awsManager = new AWSIdentityManager({
+            username: this.config.username,
+            policies: policySet.managedPolicies,
+            region: 'us-east-1',
+            homeDirectory: this.config.homeDirectory
+          });
+        }
+        
+        await this.awsManager.deleteIAMUser();
+      } catch (error) {
+        console.warn(`Warning: Could not clean up AWS resources: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
     // Remove local user (this also removes home directory)
     await this.removeLocalUser();
     
@@ -83,9 +164,54 @@ export class ServiceAccountManager {
     if (!keepLogs) {
       await this.cleanupLogs();
     }
-    
-    // Note: AWS cleanup will be handled separately
   }
+
+  /**
+   * Check if AWS credentials file has valid credentials
+   */
+  private async checkAWSCredentials(): Promise<boolean> {
+    try {
+      const credentialsPath = path.join(this.config.homeDirectory, '.aws', 'credentials');
+      const credentialsContent = await fs.readFile(credentialsPath, 'utf8');
+      
+      return credentialsContent.includes(`[${this.config.username}]`) &&
+             credentialsContent.includes('aws_access_key_id') &&
+             credentialsContent.includes('aws_secret_access_key');
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get AWS account information
+   */
+  async getAWSAccountInfo(): Promise<{ accountId: string; region: string } | null> {
+    try {
+      if (!this.awsManager) {
+        const policySet = PolicyGenerator.generatePolicies(this.config.projectType);
+        this.awsManager = new AWSIdentityManager({
+          username: this.config.username,
+          policies: policySet.managedPolicies,
+          region: 'us-east-1',
+          homeDirectory: this.config.homeDirectory
+        });
+      }
+      
+      return await this.awsManager.getCurrentAccount();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get policy summary for the project type
+   */
+  getPolicySummary(): string[] {
+    const policySet = PolicyGenerator.generatePolicies(this.config.projectType);
+    return PolicyGenerator.getPolicySummary(policySet);
+  }
+
+  // ... (keep all existing private methods unchanged)
 
   /**
    * Create local user account for Q
