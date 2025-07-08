@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "description": "Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation",
   "main": "dist/index.js",
+  "type": "module",
   "bin": {
     "no-wing": "./dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/cli/index.ts",
+    "dev": "tsx src/cli/index.ts",
     "start": "node dist/cli/index.js",
+    "test": "node --test test/**/*.test.js",
+    "test:tape": "tape test/**/*.test.js",
     "clean": "rm -rf dist .no-wing"
   },
   "keywords": [
@@ -25,7 +28,7 @@
   "author": "Your Name",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@aws-sdk/client-sts": "^3.0.0",
@@ -37,8 +40,10 @@
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.10",
-    "@types/node": "^20.0.0",
-    "ts-node": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "@types/tape": "^5.6.4",
+    "tape": "^5.7.2",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
 }

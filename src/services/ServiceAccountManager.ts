@@ -5,7 +5,7 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { QServiceAccountConfig } from './ProjectDetector';
+import type { QServiceAccountConfig } from './ProjectDetector.js';
 
 export interface ServiceAccountStatus {
   exists: boolean;
@@ -330,5 +330,12 @@ export class ServiceAccountManager {
         reject(new Error(`Error executing command: ${error.message}`));
       });
     });
+  }
+
+  /**
+   * Get the service account configuration
+   */
+  getConfig(): QServiceAccountConfig {
+    return this.config;
   }
 }
