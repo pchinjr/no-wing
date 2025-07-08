@@ -21,7 +21,7 @@ program
   .option('--dry-run', 'Show what would be created without making changes')
   .option('--force', 'Recreate service account if it already exists')
   .action(async (options) => {
-    const { setupCommand } = await import('./setup');
+    const { setupCommand } = await import('./setup.js');
     await setupCommand(options);
   });
 
@@ -31,7 +31,7 @@ program
   .description('📊 Show Q service account status and health')
   .option('--verbose', 'Show detailed service account information')
   .action(async (options) => {
-    const { statusCommand } = await import('./status');
+    const { statusCommand } = await import('./status.js');
     await statusCommand(options);
   });
 
@@ -43,7 +43,7 @@ program
   .option('--add <permission>', 'Add permission to Q service account')
   .option('--remove <permission>', 'Remove permission from Q service account')
   .action(async (options) => {
-    const { permissionsCommand } = await import('./permissions');
+    const { permissionsCommand } = await import('./permissions.js');
     await permissionsCommand(options);
   });
 
@@ -54,7 +54,7 @@ program
   .option('--since <date>', 'Show activity since date (e.g., "1 day ago")')
   .option('--type <type>', 'Filter by action type (git, aws, file)')
   .action(async (options) => {
-    const { auditCommand } = await import('./audit');
+    const { auditCommand } = await import('./audit.js');
     await auditCommand(options);
   });
 
@@ -65,7 +65,7 @@ program
   .option('--keep-logs', 'Keep audit logs after cleanup')
   .option('--force', 'Skip confirmation prompts')
   .action(async (options) => {
-    const { cleanupCommand } = await import('./cleanup');
+    const { cleanupCommand } = await import('./cleanup.js');
     await cleanupCommand(options);
   });
 
@@ -75,7 +75,7 @@ program
   .alias('q')
   .description('🚀 Launch Amazon Q with service account identity')
   .action(async () => {
-    const { launchCommand } = await import('./launch');
+    const { launchCommand } = await import('./launch.js');
     await launchCommand();
   });
 
