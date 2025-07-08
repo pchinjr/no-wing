@@ -82,9 +82,19 @@ program
   .command('launch')
   .alias('q')
   .description('🚀 Launch Amazon Q with service account identity')
-  .action(async () => {
+  .option('--background', 'Launch without interactive prompts')
+  .option('--verbose', 'Show detailed technical information')
+  .allowUnknownOption() // Allow Q CLI arguments to pass through
+  .action(async (options, command) => {
     const { launchCommand } = await import('./launch.js');
-    await launchCommand();
+    
+    // Get any additional arguments that should be passed to Q CLI
+    const qCliArgs = command.args || [];
+    
+    await launchCommand({
+      ...options,
+      qCliArgs
+    });
   });
 
 // Easter egg: Jon Snow knows nothing

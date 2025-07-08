@@ -13,6 +13,7 @@ import { QCliDetector } from '../services/QCliDetector.js';
 interface LaunchOptions {
   background?: boolean;
   verbose?: boolean;
+  qCliArgs?: string[];
 }
 
 export async function launchCommand(options: LaunchOptions = {}) {
