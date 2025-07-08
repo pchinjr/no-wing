@@ -64,11 +64,37 @@ export async function statusCommand(options: StatusOptions = {}) {
     const awsIcon = status.awsConfigured ? '✅' : '❌';
     const awsColor = status.awsConfigured ? chalk.green : chalk.red;
     console.log(`${awsIcon} ${awsColor('AWS Identity:')} ${qConfig.awsProfile}`);
+    
     if (status.awsConfigured) {
       console.log(chalk.gray(`   Profile: ${qConfig.awsProfile}`));
       console.log(chalk.gray(`   Credentials: ${qConfig.homeDirectory}/.aws/credentials`));
+      
+      // AWS User Status
+      if (status.awsUser !== undefined) {
+        const awsUserIcon = status.awsUser ? '✅' : '❌';
+        const awsUserColor = status.awsUser ? chalk.green : chalk.red;
+        console.log(`   ${awsUserIcon} ${awsUserColor('IAM User:')} ${status.awsUser ? 'Created' : 'Not found'}`);
+      }
+      
+      // AWS Credentials Status
+      if (status.awsCredentials !== undefined) {
+        const credsIcon = status.awsCredentials ? '✅' : '❌';
+        const credsColor = status.awsCredentials ? chalk.green : chalk.red;
+        console.log(`   ${credsIcon} ${credsColor('Credentials:')} ${status.awsCredentials ? 'Valid' : 'Missing'}`);
+      }
+      
+      // Show AWS account info
+      try {
+        const accountInfo = await manager.getAWSAccountInfo();
+        if (accountInfo) {
+          console.log(chalk.gray(`   Account: ${accountInfo.accountId}`));
+          console.log(chalk.gray(`   Region: ${accountInfo.region}`));
+        }
+      } catch {
+        console.log(chalk.gray('   Account: Unable to retrieve'));
+      }
     } else {
-      console.log(chalk.gray('   Status: Not configured (Phase 2)'));
+      console.log(chalk.gray('   Status: Not configured'));
     }
     console.log('');
     
@@ -102,13 +128,15 @@ export async function statusCommand(options: StatusOptions = {}) {
     console.log(`${healthIcon} ${healthColor('Overall Status:')} ${healthStatus}`);
     console.log('');
 
-    if (options.verbose && status.exists) {
+    // Show AWS permissions if verbose and AWS is configured
+    if (options.verbose && (status.awsConfigured || status.exists)) {
       console.log(chalk.yellow('🔍 Detailed Information'));
       console.log('');
       
-      console.log(chalk.gray('Expected Permissions:'));
-      projectType.permissions.forEach(permission => {
-        console.log(chalk.gray(`  • ${permission}`));
+      console.log(chalk.gray('AWS Permissions Summary:'));
+      const policySummary = manager.getPolicySummary();
+      policySummary.forEach(line => {
+        console.log(chalk.gray(`  ${line}`));
       });
       console.log('');
       
@@ -123,22 +151,36 @@ export async function statusCommand(options: StatusOptions = {}) {
     if (!status.exists) {
       console.log(chalk.cyan('🚀 Next Steps:'));
       console.log('  no-wing setup            # Create Q service account');
+      console.log('  no-wing setup --skip-aws # Create local-only account');
     } else if (!status.healthy) {
       console.log(chalk.cyan('🔧 Recommended Actions:'));
       if (!status.awsConfigured) {
-        console.log('  no-wing permissions      # Configure AWS credentials (Phase 2)');
+        console.log('  no-wing setup            # Add AWS integration');
       }
       if (!status.gitConfigured || !status.workspace) {
         console.log('  no-wing setup --force    # Recreate service account');
+      }
+      if (status.awsConfigured && !status.awsUser) {
+        console.log('  no-wing setup --force    # Recreate with AWS user');
       }
     } else {
       console.log(chalk.cyan('🚀 Ready to use:'));
       console.log('  no-wing launch           # Launch Q with service account identity');
       console.log('  no-wing audit            # View Q activity log');
+      console.log('  no-wing permissions      # Review AWS permissions');
     }
     
   } catch (error) {
     console.error(chalk.red('❌ Error checking status:'), error instanceof Error ? error.message : 'Unknown error');
+    
+    if (error instanceof Error && error.message.includes('AWS')) {
+      console.log('');
+      console.log(chalk.yellow('💡 AWS status check failed:'));
+      console.log('   • Check your AWS credentials and permissions');
+      console.log('   • The local service account may still be functional');
+      console.log('   • Use --verbose for more details');
+    }
+    
     process.exit(1);
   }
 }
