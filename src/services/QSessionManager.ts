@@ -108,6 +108,42 @@ export class QSessionManager {
   }
 
   /**
+   * Gracefully terminate active Q session
+   */
+  async terminateSession(force: boolean = false): Promise<void> {
+    if (!this.qProcess || this.qProcess.killed) {
+      console.log('ℹ️  No active Q CLI session to terminate');
+      return;
+    }
+
+    console.log('🛑 Terminating Q CLI session...');
+    
+    if (force) {
+      this.qProcess.kill('SIGKILL');
+      console.log('⚠️  Q CLI session force terminated');
+    } else {
+      this.qProcess.kill('SIGTERM');
+      
+      // Wait for graceful termination
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          if (this.qProcess && !this.qProcess.killed) {
+            console.log('⚠️  Graceful termination timeout, force killing...');
+            this.qProcess.kill('SIGKILL');
+          }
+          resolve();
+        }, 5000);
+
+        this.qProcess?.on('exit', () => {
+          clearTimeout(timeout);
+          console.log('✅ Q CLI session terminated gracefully');
+          resolve();
+        });
+      });
+    }
+  }
+
+  /**
    * Validate that service account exists and is healthy
    */
   private async validateServiceAccount(): Promise<void> {
@@ -271,6 +307,34 @@ export class QSessionManager {
     this.qProcess.on('error', (error) => {
       console.error('❌ Q CLI process error:', error.message);
       this.logSessionError(sessionConfig, error);
+    });
+
+    // Handle process signals for graceful termination
+    const handleSignal = (signal: string) => {
+      console.log(`\n🛑 Received ${signal}, gracefully terminating Q CLI session...`);
+      if (this.qProcess && !this.qProcess.killed) {
+        this.qProcess.kill('SIGTERM');
+        
+        // Force kill after 5 seconds if process doesn't terminate
+        setTimeout(() => {
+          if (this.qProcess && !this.qProcess.killed) {
+            console.log('⚠️  Force terminating Q CLI process...');
+            this.qProcess.kill('SIGKILL');
+          }
+        }, 5000);
+      }
+    };
+
+    // Register signal handlers
+    process.on('SIGINT', () => handleSignal('SIGINT'));
+    process.on('SIGTERM', () => handleSignal('SIGTERM'));
+    process.on('SIGHUP', () => handleSignal('SIGHUP'));
+
+    // Clean up signal handlers when process exits
+    this.qProcess.on('exit', () => {
+      process.removeAllListeners('SIGINT');
+      process.removeAllListeners('SIGTERM');
+      process.removeAllListeners('SIGHUP');
     });
 
     this.qProcess.on('error', (error) => {
