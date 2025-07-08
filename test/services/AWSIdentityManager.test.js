@@ -122,7 +122,7 @@ test('AWSIdentityManager - username validation', (t) => {
 test('AWSIdentityManager - credentials structure validation', (t) => {
   const mockCredentials = {
     accessKeyId: 'AKIATEST123456789012',
-    secretAccessKey: 'test-secret-key-1234567890abcdef',
+    secretAccessKey: 'test-secret-key-1234567890abcdef1234567890abcdef12345678',
     region: 'us-east-1'
   };
   
