@@ -28,6 +28,7 @@ program
   .description('🔧 Create Q service account for current project')
   .option('--dry-run', 'Show what would be created without making changes')
   .option('--force', 'Recreate service account if it already exists')
+  .option('--skip-aws', 'Create local service account without AWS integration')
   .action(async (options) => {
     const { setupCommand } = await import('./setup.js');
     await setupCommand(options);
