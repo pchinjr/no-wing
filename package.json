@@ -8,11 +8,12 @@
     "no-wing": "./deno/no-wing.ts"
   },
   "scripts": {
-    "build": "tsc",
     "dev": "deno run --allow-all deno/no-wing.ts",
     "start": "deno run --allow-all deno/no-wing.ts",
     "install-global": "./install-deno-final.sh",
-    "test": "deno test --allow-all",
+    "test": "deno test --allow-all tests/no-wing.test.ts",
+    "test:manual": "./test-manual.sh",
+    "test:all": "deno test --allow-all tests/no-wing.test.ts && ./test-manual.sh",
     "clean": "rm -rf dist .no-wing node_modules"
   },
   "keywords": [
@@ -45,19 +46,11 @@
   "peerDependencies": {
     "deno": ">=1.37.0"
   },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "chalk": "^4.1.2",
-    "commander": "^11.0.0",
-    "inquirer": "^8.2.6",
-    "ora": "^5.4.1"
-  },
   "files": [
     "deno/",
     "install-deno-final.sh",
+    "test-manual.sh",
+    "tests/",
     "README.md",
     "LICENSE",
     "docs/"

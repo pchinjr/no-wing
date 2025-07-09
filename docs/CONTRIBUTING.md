@@ -1,276 +1,420 @@
-# 🤝 Contributing to no-wing
+# Contributing to no-wing
 
-We welcome contributions to no-wing! This guide will help you get started.
+Thank you for your interest in contributing to no-wing! This guide will help you get started with development and contributing to the project.
 
 ## 🚀 Quick Start
 
-1. **Fork the repository**
-2. **Clone your fork**: `git clone https://github.com/your-username/no-wing.git`
-3. **Install dependencies**: `npm install`
-4. **Build the project**: `npm run build`
-5. **Run tests**: `npm test`
-
-## 🛠️ Development Setup
-
 ### Prerequisites
-- Node.js 18+ 
-- npm 8+
-- Git
-- Linux/macOS (Windows support via WSL)
 
-### Local Development
+- [Deno](https://deno.land/) >= 1.37.0
+- [Git](https://git-scm.com/)
+- [Amazon Q CLI](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html) (for testing)
+
+### Development Setup
+
 ```bash
-# Clone and setup
-git clone https://github.com/pchinjr/no-wing.git
+# Fork and clone the repository
+git clone https://github.com/your-username/no-wing.git
 cd no-wing
-npm install
 
-# Build and test
-npm run build
-npm test
+# Test the application
+deno run --allow-all deno/no-wing.ts --help
 
-# Test CLI locally (requires sudo for service account operations)
-sudo node dist/cli/index.js --help
-sudo node dist/cli/index.js setup --skip-aws    # Test without AWS
-sudo node dist/cli/index.js launch --verbose help  # Test Q CLI integration
+# Install globally for testing
+./install-deno-final.sh
 
-# Alternative: Use full node path if sudo can't find node
-which node  # Get full path
-sudo /full/path/to/node dist/cli/index.js setup --skip-aws
+# Test in a project
+cd /tmp && mkdir test-project && cd test-project
+no-wing setup --force
+no-wing status
+no-wing cleanup --force
 ```
 
-> **Testing Note**: Service account functionality requires sudo privileges. Use `--skip-aws` for local testing without AWS credentials.
+## 🏗️ Project Structure
 
-## 📋 Development Workflow
-
-### 1. Create a Feature Branch
-```bash
-git checkout -b feature/your-feature-name
+```
+no-wing/
+├── deno/
+│   └── no-wing.ts              # Main Deno implementation
+├── docs/
+│   ├── README.md               # Documentation index
+│   ├── CONTRIBUTING.md         # This file
+│   └── DENO_MIGRATION.md       # Migration guide
+├── src/                        # Legacy Node.js code (deprecated)
+├── install-deno-final.sh       # Global installer
+├── README.md                   # Main documentation
+├── package.json                # Package metadata
+└── LICENSE                     # MIT License
 ```
 
-### 2. Make Your Changes
-- Write code with comprehensive tests
-- Follow existing code style and patterns
-- Update documentation as needed
+## 🔧 Development Workflow
 
-### 3. Test Your Changes
-```bash
-# Run all tests
-npm test
+### Making Changes
 
-# Run specific test suites
-npm run test:unit
-npm run test:integration
+1. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-# Build and test CLI
-npm run build
-node dist/cli/index.js --version
+2. **Make your changes**
+   - Edit `deno/no-wing.ts` for core functionality
+   - Update documentation in `docs/` and `README.md`
+   - Add tests if applicable
+
+3. **Test your changes**
+   ```bash
+   # Test locally
+   deno run --allow-all deno/no-wing.ts --help
+   deno run --allow-all deno/no-wing.ts setup --force
+   deno run --allow-all deno/no-wing.ts status
+   deno run --allow-all deno/no-wing.ts cleanup --force
+   
+   # Test global installation
+   ./install-deno-final.sh
+   no-wing --help
+   ```
+
+4. **Test across different project types**
+   ```bash
+   # Test with SAM project
+   cd /tmp && mkdir sam-test && cd sam-test
+   echo 'AWSTemplateFormatVersion: "2010-09-09"' > template.yaml
+   no-wing setup --force && no-wing status && no-wing cleanup --force
+   
+   # Test with CDK project
+   cd /tmp && mkdir cdk-test && cd cdk-test
+   echo '{}' > cdk.json
+   no-wing setup --force && no-wing status && no-wing cleanup --force
+   
+   # Test with generic project
+   cd /tmp && mkdir generic-test && cd generic-test
+   no-wing setup --force && no-wing status && no-wing cleanup --force
+   ```
+
+### Code Style
+
+#### TypeScript/Deno Style
+
+- Use TypeScript with strict typing
+- Follow Deno conventions and standard library
+- Use `async/await` for asynchronous operations
+- Prefer explicit error handling
+
+#### Example Code Style
+
+```typescript
+// Good: Explicit types and error handling
+async function createWorkspace(projectName: string): Promise<void> {
+  try {
+    const workspaceDir = `${homeDir}/.no-wing/service-accounts/${projectName}`;
+    await ensureDir(workspaceDir);
+    console.log(colors.green(`✅ Workspace created: ${workspaceDir}`));
+  } catch (error) {
+    throw new Error(`Failed to create workspace: ${error.message}`);
+  }
+}
+
+// Good: Clear function signatures
+interface ServiceAccountConfig {
+  projectName: string;
+  username: string;
+  workspaceDir: string;
+  gitIdentity: {
+    name: string;
+    email: string;
+  };
+  awsProfile: string;
+}
 ```
 
-### 4. Commit Your Changes
-```bash
-# Use conventional commit format
-git commit -m "feat: add amazing new feature"
-git commit -m "fix: resolve issue with service account setup"
-git commit -m "docs: update README with new examples"
-```
+#### Documentation Style
 
-### 5. Push and Create PR
-```bash
-git push origin feature/your-feature-name
-# Create Pull Request on GitHub
-```
-
-## 🧪 Testing Guidelines
-
-### Test Coverage
-- **Unit Tests**: Test individual functions and classes
-- **Integration Tests**: Test end-to-end workflows
-- **Security Tests**: Test permission and validation logic
-
-### Writing Tests
-```javascript
-import test from 'tape';
-
-test('Feature description', (t) => {
-  // Arrange
-  const input = 'test input';
-  
-  // Act
-  const result = yourFunction(input);
-  
-  // Assert
-  t.equal(result, 'expected output', 'Should return expected result');
-  t.end();
-});
-```
-
-### Running Tests
-```bash
-npm test                    # All tests
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests only
-npm run test:coverage      # With coverage report
-```
-
-### Testing Service Account Functionality
-
-Service account features require sudo privileges for testing:
-
-```bash
-# Build first
-npm run build
-
-# Test service account setup
-sudo node dist/cli/index.js setup --skip-aws
-
-# Test Q CLI integration (without actual Q CLI)
-sudo node dist/cli/index.js launch --verbose help
-
-# Test status checks
-sudo node dist/cli/index.js status --verbose
-
-# Clean up after testing
-sudo node dist/cli/index.js teardown --force
-```
-
-**Testing Environment Requirements:**
-- Linux or macOS (WSL2 supported)
-- Node.js 18+
-- sudo privileges
-- No actual Q CLI installation required for integration testing
-
-## 📝 Code Style
-
-### TypeScript Guidelines
-- Use TypeScript for all new code
-- Provide proper type annotations
-- Follow existing patterns and interfaces
-
-### Commit Messages
-Use conventional commit format:
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `test:` - Test additions/changes
-- `refactor:` - Code refactoring
-- `chore:` - Maintenance tasks
-
-### Code Organization
-```
-src/
-├── cli/           # CLI commands and interface
-├── services/      # Core business logic
-└── types/         # TypeScript type definitions
-
-test/
-├── services/      # Service unit tests
-└── integration/   # End-to-end tests
-```
-
-## 🛡️ Security Considerations
-
-### Service Account Security
-- Never expose real AWS credentials in tests
-- Use mock data for sensitive operations
-- Validate all user inputs
-- Follow principle of least privilege
-
-### Code Security
-- Sanitize all external inputs
-- Validate file paths and permissions
-- Use secure defaults
-- Document security implications
-
-## 📚 Documentation
-
-### Update Documentation
+- Use clear, concise language
+- Include code examples for complex features
 - Update README.md for user-facing changes
-- Update technical docs for implementation changes
-- Add examples for new features
-- Update troubleshooting for new issues
+- Add inline comments for complex logic
 
-### Documentation Style
-- User-focused language
-- Practical examples
-- Clear step-by-step instructions
-- Comprehensive troubleshooting
+### Testing
+
+#### Manual Testing Checklist
+
+- [ ] `no-wing --help` shows help
+- [ ] `no-wing --version` shows version
+- [ ] `no-wing setup` creates service account
+- [ ] `no-wing status` shows correct status
+- [ ] `no-wing cleanup` removes service account
+- [ ] Works with SAM projects (template.yaml)
+- [ ] Works with CDK projects (cdk.json)
+- [ ] Works with generic projects
+- [ ] Cross-platform compatibility (if possible)
+
+#### Integration Testing
+
+```bash
+# Full workflow test
+cd /tmp && mkdir integration-test && cd integration-test
+
+# Setup
+no-wing setup --force
+no-wing status | grep "✅ Service account is ready"
+
+# Check workspace structure
+ls -la ~/.no-wing/service-accounts/integration-test/
+test -f ~/.no-wing/service-accounts/integration-test/.gitconfig
+test -f ~/.no-wing/service-accounts/integration-test/.aws/config
+
+# Cleanup
+no-wing cleanup --force
+test ! -d ~/.no-wing/service-accounts/integration-test/
+```
+
+## 📝 Commit Guidelines
+
+### Commit Message Format
+
+Use conventional commits with emojis:
+
+```
+🛫 feat: add new project detection for Terraform
+🐛 fix: resolve workspace creation on Windows
+📚 docs: update installation instructions
+🔧 refactor: simplify service account manager
+✅ test: add integration tests for AWS setup
+🎨 style: improve error message formatting
+```
+
+### Commit Types
+
+- `🛫 feat`: New features
+- `🐛 fix`: Bug fixes
+- `📚 docs`: Documentation changes
+- `🔧 refactor`: Code refactoring
+- `✅ test`: Adding or updating tests
+- `🎨 style`: Code style changes
+- `⚡ perf`: Performance improvements
+- `🔒 security`: Security improvements
+
+## 🔄 Pull Request Process
+
+### Before Submitting
+
+1. **Test thoroughly**
+   - Manual testing on your platform
+   - Cross-platform testing if possible
+   - Integration testing
+
+2. **Update documentation**
+   - Update README.md for user-facing changes
+   - Update docs/ for technical changes
+   - Add inline code comments
+
+3. **Check code quality**
+   - Follow TypeScript best practices
+   - Use Deno standard library
+   - Handle errors appropriately
+
+### Pull Request Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Documentation update
+- [ ] Refactoring
+- [ ] Performance improvement
+
+## Testing
+- [ ] Manual testing completed
+- [ ] Integration testing completed
+- [ ] Cross-platform testing (if applicable)
+
+## Documentation
+- [ ] README.md updated
+- [ ] Inline documentation added
+- [ ] Breaking changes documented
+
+## Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] Testing completed
+```
+
+### Review Process
+
+1. **Automated checks** (if configured)
+2. **Manual review** by maintainers
+3. **Testing** by reviewers
+4. **Approval** and merge
 
 ## 🐛 Bug Reports
 
 ### Before Reporting
-1. Check existing issues
-2. Test with latest version
-3. Gather system information
+
+1. **Search existing issues** for duplicates
+2. **Test with latest version**
+3. **Reproduce the issue** consistently
 
 ### Bug Report Template
+
 ```markdown
-**Describe the bug**
-A clear description of what the bug is.
+## Bug Description
+Clear description of the bug
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Run command '...'
-2. See error
+## Steps to Reproduce
+1. Step one
+2. Step two
+3. Step three
 
-**Expected behavior**
-What you expected to happen.
+## Expected Behavior
+What should happen
 
-**Environment:**
-- OS: [e.g. Ubuntu 22.04]
-- Node.js version: [e.g. 18.17.0]
-- no-wing version: [e.g. 0.2.0]
+## Actual Behavior
+What actually happens
 
-**Additional context**
-Any other context about the problem.
+## Environment
+- OS: [e.g., Ubuntu 22.04, macOS 13.0, Windows 11]
+- Deno version: [e.g., 1.37.0]
+- no-wing version: [e.g., 1.0.0]
+- Q CLI version: [e.g., 1.0.0] (if applicable)
+
+## Additional Context
+Any other relevant information
 ```
 
 ## 💡 Feature Requests
 
-### Before Requesting
-1. Check existing issues and discussions
-2. Consider if it fits the project scope
-3. Think about implementation complexity
-
 ### Feature Request Template
+
 ```markdown
-**Is your feature request related to a problem?**
-A clear description of what the problem is.
+## Feature Description
+Clear description of the proposed feature
 
-**Describe the solution you'd like**
-A clear description of what you want to happen.
+## Use Case
+Why is this feature needed?
 
-**Describe alternatives you've considered**
-Other solutions you've considered.
+## Proposed Solution
+How should this feature work?
 
-**Additional context**
-Any other context about the feature request.
+## Alternatives Considered
+Other approaches you've considered
+
+## Additional Context
+Any other relevant information
 ```
 
-## 🎯 Project Goals
+## 🏷️ Release Process
 
-### Core Mission
-Give Amazon Q its own identity for secure, auditable project automation.
+### Version Numbering
 
-### Key Principles
-- **Security First**: Complete identity separation
-- **User Experience**: Simple and intuitive
-- **Reliability**: Comprehensive testing
-- **Transparency**: Clear audit trails
+We follow [Semantic Versioning](https://semver.org/):
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes (backward compatible)
 
-## 📞 Getting Help
+### Release Checklist
+
+1. **Update version** in `package.json`
+2. **Update documentation** (README.md, docs/)
+3. **Test thoroughly** across platforms
+4. **Create release notes**
+5. **Tag release** with `git tag -a v1.x.x`
+6. **Push to main** and push tags
+
+## 🤝 Community Guidelines
+
+### Code of Conduct
+
+- Be respectful and inclusive
+- Focus on constructive feedback
+- Help others learn and grow
+- Maintain a welcoming environment
+
+### Communication
 
 - **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: Questions and community support
-- **Documentation**: Comprehensive guides and examples
+- **GitHub Discussions**: General questions and discussions
+- **Pull Requests**: Code contributions and reviews
 
-## 🙏 Recognition
+## 🛠️ Development Tips
 
-Contributors are recognized in:
-- GitHub contributors list
-- Release notes for significant contributions
-- Project acknowledgments
+### Deno Best Practices
 
----
+```typescript
+// Use Deno standard library
+import { parseArgs } from "https://deno.land/std@0.208.0/cli/parse_args.ts";
+import * as colors from "https://deno.land/std@0.208.0/fmt/colors.ts";
 
-**Thank you for contributing to no-wing! 🛫**
+// Handle permissions explicitly
+const cmd = new Deno.Command('git', {
+  args: ['config', 'user.name'],
+  stdout: 'piped',
+  stderr: 'piped'
+});
+
+// Use proper error handling
+try {
+  const { code, stdout } = await cmd.output();
+  if (code !== 0) {
+    throw new Error('Git command failed');
+  }
+  return new TextDecoder().decode(stdout).trim();
+} catch (error) {
+  throw new Error(`Failed to get git config: ${error.message}`);
+}
+```
+
+### Cross-Platform Considerations
+
+```typescript
+// Handle different operating systems
+const homeDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '.';
+
+// Handle file permissions (Unix-like systems only)
+if (Deno.build.os !== 'windows') {
+  await Deno.chmod(scriptPath, 0o755);
+}
+
+// Use appropriate path separators
+const workspaceDir = `${homeDir}/.no-wing/service-accounts/${projectName}`;
+```
+
+### Debugging
+
+```typescript
+// Add debug logging
+const DEBUG = Deno.env.get('NO_WING_DEBUG') === '1';
+
+function debug(message: string): void {
+  if (DEBUG) {
+    console.log(colors.gray(`[DEBUG] ${message}`));
+  }
+}
+
+// Use in code
+debug(`Creating workspace: ${workspaceDir}`);
+```
+
+## 📚 Resources
+
+### Deno Resources
+- [Deno Manual](https://deno.land/manual)
+- [Deno Standard Library](https://deno.land/std)
+- [Deno by Example](https://examples.deno.land/)
+
+### Project Resources
+- [Amazon Q CLI Documentation](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/)
+- [AWS CLI Configuration](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+- [Git Configuration](https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration)
+
+## ❓ Getting Help
+
+1. **Check documentation**: README.md and docs/
+2. **Search issues**: Existing GitHub issues
+3. **Ask questions**: GitHub Discussions
+4. **Report bugs**: GitHub Issues
+
+Thank you for contributing to no-wing! 🛫
