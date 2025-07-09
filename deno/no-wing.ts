@@ -167,7 +167,7 @@ class ServiceAccountManager {
 
     // Set up environment
     const env = {
-      ...Object.fromEntries(Deno.env.entries()),
+      ...Deno.env.toObject(),
       GIT_CONFIG_GLOBAL: `${this.config.workspaceDir}/.gitconfig`,
       AWS_CONFIG_FILE: `${this.config.workspaceDir}/.aws/config`,
       AWS_SHARED_CREDENTIALS_FILE: `${this.config.workspaceDir}/.aws/credentials`,
