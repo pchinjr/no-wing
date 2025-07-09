@@ -2,10 +2,10 @@
 
 **Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation**
 
-Configure Amazon Q with its own local user account, AWS credentials, and git identity per project. Q operates as a dedicated service account with proper attribution and isolated permissions - never masquerading as you again.
+Configure Amazon Q with isolated workspaces, dedicated git identity, and AWS credentials per project. Q operates with proper attribution and isolated permissions - never masquerading as you again.
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/pchinjr/no-wing/releases/tag/v0.2.0)
-[![Tests](https://img.shields.io/badge/tests-295%20passing-green.svg)](#testing)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/pchinjr/no-wing/releases/tag/v1.0.0)
+[![Deno](https://img.shields.io/badge/runtime-Deno-00ADD8.svg)](https://deno.land/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 🎯 The Problem
@@ -19,170 +19,110 @@ When you give Amazon Q command line access, it performs actions using YOUR ident
 
 ## 🛡️ The Solution
 
-**no-wing** creates a dedicated service account for Q in each project:
-- ✅ Q has its own local user account (`q-assistant-{project}`)
+**no-wing** creates isolated service account workspaces for Q in each project:
+- ✅ Q has its own isolated workspace (`~/.no-wing/service-accounts/{project}/`)
 - ✅ Q commits with its own git identity (`Q Assistant (project)`)
 - ✅ Q uses its own AWS credentials with scoped permissions
 - ✅ Complete audit trail of Q vs human actions
-- ✅ **Seamless Q CLI integration** with identity separation
+- ✅ **No sudo required** - uses user-space isolation
+- ✅ **Built with Deno** - single binary, no dependencies
 
 ## 🚀 Quick Start
+
+### Prerequisites
+
+- [Deno](https://deno.land/) installed
+- [Amazon Q CLI](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html) installed
 
 ### Installation
 
 ```bash
-# Install no-wing globally
-npm install -g no-wing
+# Clone the repository
+git clone https://github.com/pchinjr/no-wing.git
+cd no-wing
 
-# Or run directly with npx
-npx no-wing --help
+# Install globally (one-time setup, requires sudo only for global command creation)
+./install-deno-final.sh
 ```
 
 ### Basic Usage
 
 ```bash
-# 1. Set up Q service account for your project
-sudo no-wing setup               # Requires sudo for user account creation
+# 1. Set up Q service account for your project (no sudo required!)
+cd your-project
+no-wing setup
 
 # 2. Launch Q CLI with service account identity
-sudo no-wing launch              # Start Q chat session
-sudo no-wing launch chat --verbose  # Q CLI with arguments
-sudo no-wing launch help         # Show Q CLI help
+no-wing launch              # Start Q chat session
+no-wing launch help         # Show Q CLI help
+no-wing launch --verbose    # Q CLI with verbose output
 
 # 3. Check service account status
-no-wing status                   # Basic status check
-sudo no-wing status --verbose    # Detailed status (may require sudo)
+no-wing status
 
-# 4. View Q session activity
-no-wing audit
+# 4. Configure AWS credentials (optional)
+no-wing aws-setup
 
 # 5. Clean up when done
-sudo no-wing teardown            # Requires sudo for user removal
+no-wing cleanup
 ```
-
-> **Note**: Service account operations require `sudo` privileges for creating/managing local user accounts and accessing service account files.
 
 ## ✨ Key Features
 
 ### 🔐 Complete Identity Separation
-- **Local User Account**: Q runs as `q-assistant-{project}` user
+- **Isolated Workspace**: Q operates in `~/.no-wing/service-accounts/{project}/`
 - **Git Identity**: Q commits as `Q Assistant (project) <q-assistant+project@no-wing.dev>`
-- **AWS Credentials**: Q uses dedicated IAM user with project-specific permissions
-- **Workspace Isolation**: Q operates in isolated workspace with project files
+- **AWS Credentials**: Q uses dedicated AWS profile with project-specific permissions
+- **Environment Isolation**: Q operates with isolated environment variables
 
-### 🎯 Seamless Q CLI Integration
-- **Real Q CLI Execution**: Actual Q CLI with service account identity
-- **Full Argument Support**: Pass any Q CLI commands and options
-- **Interactive Experience**: Complete Q CLI chat experience
-- **Security Validation**: Dangerous options blocked automatically
-- **Graceful Fallback**: Helpful guidance when Q CLI not installed
+### 🎯 No Sudo Required
+- **User-space isolation**: No system user creation needed
+- **Workspace-based**: Uses isolated directories in user's home
+- **Environment variables**: Overrides git and AWS configurations per session
+- **Cross-platform**: Works on Linux, macOS, and Windows
 
-### 📊 Comprehensive Auditing
-- **Session Logging**: Complete audit trail of Q activities
-- **Git Attribution**: Clear separation of human vs Q commits
-- **AWS Activity**: Q actions tracked under dedicated IAM user
-- **Project Isolation**: Each project has its own Q service account
+### 📊 Built with Deno
+- **Single binary**: No Node.js dependencies or build steps
+- **Built-in TypeScript**: Native TypeScript support
+- **Secure by default**: Explicit permissions model
+- **Cross-platform**: Runs anywhere Deno runs
+- **Fast startup**: No dependency resolution
 
 ### 🛠️ Smart Project Detection
 - **SAM Projects**: Automatic Lambda and API Gateway permissions
 - **CDK Projects**: CloudFormation and CDK-specific permissions
 - **Generic Projects**: Basic AWS permissions for general use
 
-## 🔐 Permissions and Sudo Requirements
-
-### Why Sudo is Required
-
-no-wing creates and manages dedicated local user accounts for Q service accounts. This requires administrative privileges for:
-
-- **User Account Management**: Creating, configuring, and removing local users
-- **File System Access**: Setting up home directories and workspace isolation
-- **Service Account Files**: Accessing and configuring service account-specific files
-- **Process Execution**: Running Q CLI as the dedicated service account user
-
-### Commands Requiring Sudo
-
-| Command | Sudo Required | Reason |
-|---------|---------------|---------|
-| `setup` | ✅ Always | Creates local user accounts and configures files |
-| `launch` | ⚠️ Usually | Health checks and Q CLI execution with service account identity |
-| `status --verbose` | ⚠️ Sometimes | Accessing service account configuration files |
-| `teardown` | ✅ Always | Removes local user accounts and cleans up files |
-| `audit` | ❌ No | Reads audit logs accessible to current user |
-
-### Alternative: Group Permissions
-
-For development environments, you can configure group permissions to reduce sudo requirements:
-
-```bash
-# Add your user to the service account group (after setup)
-sudo usermod -a -G q-assistant-{project} $USER
-
-# Make service account files group-readable
-sudo chmod -R g+r /home/q-assistant-{project}/
-
-# Start a new shell session for group membership to take effect
-newgrp q-assistant-{project}
-```
-
-> **Security Note**: Group permissions reduce security isolation. Use sudo approach for production environments.
-
-## 📋 Commands
+## 🔧 Commands
 
 ### Setup Commands
 
 ```bash
 # Set up Q service account for current project
-sudo no-wing setup
-
-# Set up with custom AWS profile or region
-sudo no-wing setup --aws-profile my-profile --region us-west-2
-
-# Set up without AWS integration (for testing)
-sudo no-wing setup --skip-aws
-
-# Show what would be created without making changes
-sudo no-wing setup --dry-run
+no-wing setup
 
 # Force recreate existing service account
-sudo no-wing setup --force
+no-wing setup --force
 ```
-
-> **Important**: Setup requires `sudo` privileges to create local user accounts and configure service account files.
-
-### Launch Commands
-
-```bash
-# Launch Q CLI with service account identity
-sudo no-wing launch              # Default: start chat session
-sudo no-wing launch chat         # Explicit chat session
-sudo no-wing launch chat --verbose  # Chat with verbose output
-sudo no-wing launch help         # Show Q CLI help
-sudo no-wing launch --version    # Show Q CLI version
-
-# Launch with no-wing options
-sudo no-wing launch --verbose chat     # Show launch details + Q CLI
-sudo no-wing launch --background       # Launch without prompts
-```
-
-> **Note**: Launch may require `sudo` for service account health checks and Q CLI execution with proper identity.
 
 ### Management Commands
 
 ```bash
 # Check service account status
-no-wing status                    # Basic status
-sudo no-wing status --verbose     # Detailed status (may require sudo)
+no-wing status
 
-# View Q session activity
-no-wing audit                     # Recent Q sessions
-no-wing audit --all               # All Q session history
+# Launch Q with service account identity
+no-wing launch              # Default: start chat session
+no-wing launch help         # Show Q CLI help
+no-wing launch --verbose    # Launch with verbose output
+
+# Configure AWS credentials
+no-wing aws-setup
 
 # Clean up service account
-sudo no-wing teardown             # Remove Q service account
-sudo no-wing teardown --force     # Force removal without prompts
+no-wing cleanup             # Interactive cleanup
+no-wing cleanup --force     # Force removal without prompts
 ```
-
-> **Note**: Some status checks and all teardown operations require `sudo` for accessing service account files and removing user accounts.
 
 ## 🏗️ How It Works
 
@@ -193,17 +133,17 @@ sudo no-wing teardown --force     # Force removal without prompts
 │                    runs no-wing                             │
 │                           │                                 │
 ├─────────────────────────────────────────────────────────────┤
-│                     no-wing CLI                             │
+│                     no-wing CLI (Deno)                     │
 │  ┌─────────────────┬─────────────────┬─────────────────┐   │
-│  │ ProjectDetector │ ServiceAccount  │ QSessionManager │   │
-│  │                 │ Manager         │                 │   │
+│  │ ProjectDetector │ ServiceAccount  │ Environment     │   │
+│  │                 │ Manager         │ Isolation       │   │
 │  └─────────────────┴─────────────────┴─────────────────┘   │
 │                           │                                 │
 ├─────────────────────────────────────────────────────────────┤
-│                  Service Account Layer                      │
+│              Service Account Workspace                      │
 │  ┌─────────────────┬─────────────────┬─────────────────┐   │
-│  │ Local User      │ Git Identity    │ AWS Credentials │   │
-│  │ q-assistant-*   │ Q Assistant     │ IAM User        │   │
+│  │ Git Identity    │ AWS Profile     │ Launch Scripts  │   │
+│  │ Q Assistant     │ Isolated Creds  │ Environment     │   │
 │  └─────────────────┴─────────────────┴─────────────────┘   │
 │                           │                                 │
 ├─────────────────────────────────────────────────────────────┤
@@ -233,115 +173,68 @@ no-wing automatically detects your project type and configures appropriate permi
 ### Service Account Structure
 
 ```
-/home/q-assistant-{project}/
+~/.no-wing/service-accounts/{project}/
 ├── .aws/
 │   ├── credentials              # Q's AWS credentials
 │   └── config                   # Q's AWS configuration
 ├── .gitconfig                   # Q's git identity
-├── .no-wing/
-│   ├── logs/
-│   │   └── q-sessions.log       # Q session audit log
-│   └── workspace/
-│       ├── project/             # Synced project files
-│       └── sessions/            # Q session data
-└── .bashrc                      # Q's shell environment
+├── .ssh/                        # SSH keys (if needed)
+├── bin/
+│   ├── launch-q                 # Q launch script
+│   └── status                   # Status check script
+├── logs/
+│   └── sessions.log             # Q session audit log
+└── workspace/                   # Q's working directory
 ```
-
-## 🧪 Testing
-
-no-wing includes comprehensive test coverage:
-
-```bash
-# Run all tests
-npm test
-
-# Test coverage
-npm run test:coverage
-```
-
-**Test Statistics:**
-- **295 total tests** with 100% pass rate
-- Complete coverage of core functionality
-- Security and validation testing
-- End-to-end integration tests
 
 ## 🛡️ Security
 
 ### Identity Separation
-- Q operates under dedicated local user account
-- Complete filesystem isolation from your user
+- Q operates with dedicated git identity per project
+- Complete workspace isolation from your user files
 - Separate AWS credentials with minimal required permissions
 - Git commits clearly attributed to Q Assistant
 
 ### Permission Management
 - Project-specific AWS policies (principle of least privilege)
-- Dangerous Q CLI options blocked (--profile, --credentials)
-- AWS credentials never exposed to Q CLI directly
+- AWS credentials isolated per project
 - Complete audit trail of all Q activities
+- No system-level changes required
 
 ## 🔍 Troubleshooting
+
+### Deno Not Found
+```bash
+# Install Deno
+curl -fsSL https://deno.land/x/install/install.sh | sh
+
+# Add to PATH
+echo 'export PATH="$HOME/.deno/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify installation
+deno --version
+```
 
 ### Q CLI Not Found
 ```bash
 # Check Q CLI installation
-sudo no-wing launch --verbose
+which q
 
-# Install Q CLI (example for macOS)
-brew install amazon-q
-
-# Install Q CLI (Linux)
-# Download from AWS and follow installation instructions
+# Install Q CLI (follow AWS documentation)
 # Visit: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html
 ```
 
 ### Service Account Issues
 ```bash
 # Check service account status
-sudo no-wing status --verbose
+no-wing status
 
 # Recreate service account
-sudo no-wing teardown --force && sudo no-wing setup
+no-wing cleanup --force && no-wing setup
 
-# Check AWS credentials (if AWS integration enabled)
-aws sts get-caller-identity --profile q-assistant-{project}
-```
-
-### Permission Issues
-```bash
-# Most common issue: Missing sudo
-sudo no-wing setup    # Instead of: no-wing setup
-sudo no-wing launch    # Instead of: no-wing launch
-
-# Check if service account user exists
-id q-assistant-{project}
-
-# Check service account home directory
-sudo ls -la /home/q-assistant-{project}/
-
-# Verify git configuration
-sudo cat /home/q-assistant-{project}/.gitconfig
-```
-
-### Node.js Path Issues with Sudo
-```bash
-# If you get "node: command not found" with sudo
-which node
-# Use full path: sudo /path/to/node dist/cli/index.js setup
-
-# Or add node to sudo PATH
-sudo env "PATH=$PATH" no-wing setup
-```
-
-### Health Check Failures
-```bash
-# Service account exists but health check fails
-sudo no-wing status --verbose    # Check detailed status
-sudo no-wing setup --force       # Recreate service account
-
-# Alternative: Configure group permissions (development only)
-sudo usermod -a -G q-assistant-{project} $USER
-sudo chmod -R g+r /home/q-assistant-{project}/
-newgrp q-assistant-{project}
+# Check workspace structure
+ls -la ~/.no-wing/service-accounts/{project}/
 ```
 
 ## 🤝 Contributing
@@ -351,7 +244,7 @@ We welcome contributions! Please see our [contributing guidelines](docs/CONTRIBU
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
 3. **Make your changes** with tests
-4. **Run the test suite**: `npm test`
+4. **Test with Deno**: `deno run --allow-all deno/no-wing.ts --help`
 5. **Commit your changes**: `git commit -m 'Add amazing feature'`
 6. **Push to the branch**: `git push origin feature/amazing-feature`
 7. **Open a Pull Request**
@@ -363,28 +256,30 @@ We welcome contributions! Please see our [contributing guidelines](docs/CONTRIBU
 git clone https://github.com/pchinjr/no-wing.git
 cd no-wing
 
-# Install dependencies
-npm install
+# Test locally
+deno run --allow-all deno/no-wing.ts --help
+deno run --allow-all deno/no-wing.ts setup --force
 
-# Build the project
-npm run build
-
-# Run tests
-npm test
-
-# Test locally (requires sudo for service account operations)
-sudo node dist/cli/index.js --help
-sudo node dist/cli/index.js setup --skip-aws    # Test without AWS
-sudo node dist/cli/index.js launch --verbose help  # Test Q CLI integration
+# Install globally for testing
+./install-deno-final.sh
 ```
-
-> **Development Note**: Testing service account functionality requires sudo privileges. Use `--skip-aws` for local testing without AWS credentials.
 
 ## 📚 Documentation
 
-- **[Technical Implementation](docs/Q_CLI_INTEGRATION.md)** - Deep dive into Q CLI integration
+- **[Technical Implementation](docs/DENO_MIGRATION.md)** - Deep dive into Deno implementation
 - **[Documentation Index](docs/README.md)** - Complete documentation overview
 - **[AWS Q Developer Documentation](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/)** - Official Q documentation
+
+## 🆚 Why Deno?
+
+We migrated from Node.js to Deno for several key reasons:
+
+- **No sudo required**: Eliminates Node.js + sudo PATH issues
+- **Single binary**: No build steps or dependency management
+- **Built-in TypeScript**: Native TypeScript support
+- **Secure by default**: Explicit permissions model
+- **Cross-platform**: Consistent behavior across operating systems
+- **Fast startup**: No dependency resolution overhead
 
 ## 📄 License
 
@@ -393,9 +288,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Amazon Q Developer** - The AI assistant that inspired this security solution
+- **Deno Team** - For creating an excellent runtime for system utilities
 - **AWS IAM** - For providing the foundation for secure service account management
-- **The Node.js Community** - For the excellent tooling and libraries
 
 ---
 
 **🛫 Give Amazon Q its own wings - secure, auditable, and properly attributed.**
+
+**Built with Deno. No sudo required. No dependencies. Just works.**

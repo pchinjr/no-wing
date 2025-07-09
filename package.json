@@ -1,49 +1,65 @@
 {
   "name": "no-wing",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation",
-  "main": "dist/index.js",
+  "main": "deno/no-wing.ts",
   "type": "module",
   "bin": {
-    "no-wing": "./dist/cli/index.js"
+    "no-wing": "./deno/no-wing.ts"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/cli/index.ts",
-    "start": "node dist/cli/index.js",
-    "test": "node --test test/**/*.test.js",
-    "test:tape": "tape test/**/*.test.js",
-    "clean": "rm -rf dist .no-wing"
+    "dev": "deno run --allow-all deno/no-wing.ts",
+    "start": "deno run --allow-all deno/no-wing.ts",
+    "install-global": "./install-deno-final.sh",
+    "test": "deno test --allow-all",
+    "clean": "rm -rf dist .no-wing node_modules"
   },
   "keywords": [
-    "aws",
     "amazon-q",
+    "ai",
     "service-account",
-    "identity-management",
     "security",
-    "audit",
+    "aws",
+    "git",
+    "identity",
+    "isolation",
+    "deno",
+    "typescript",
     "automation",
-    "serverless"
+    "audit"
   ],
-  "author": "Your Name",
+  "author": "Paul Chin Jr <paul@paulchinjr.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pchinjr/no-wing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pchinjr/no-wing/issues"
+  },
+  "homepage": "https://github.com/pchinjr/no-wing#readme",
   "engines": {
-    "node": ">=22.0.0"
+    "deno": ">=1.37.0"
+  },
+  "peerDependencies": {
+    "deno": ">=1.37.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-sts": "^3.0.0",
-    "@aws-sdk/client-iam": "^3.0.0",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "inquirer": "^8.2.6",
     "ora": "^5.4.1"
   },
-  "devDependencies": {
-    "@types/inquirer": "^8.2.10",
-    "@types/node": "^22.0.0",
-    "@types/tape": "^5.6.4",
-    "tape": "^5.7.2",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
-  }
+  "files": [
+    "deno/",
+    "install-deno-final.sh",
+    "README.md",
+    "LICENSE",
+    "docs/"
+  ]
 }
