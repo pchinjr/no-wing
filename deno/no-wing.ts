@@ -180,7 +180,7 @@ class ServiceAccountManager {
     const cmd = new Deno.Command('bash', {
       args: [launchScript, ...args],
       env,
-      cwd: `${this.config.workspaceDir}/workspace`,
+      cwd: Deno.cwd(), // Work in the current directory (your project), not the service account workspace
       stdin: 'inherit',
       stdout: 'inherit',
       stderr: 'inherit'
