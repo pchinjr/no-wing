@@ -87,3 +87,15 @@ q-workspace/
 # Test files
 test-*
 demo-output.txt
+
+# Experimental and development files
+bin/
+docker/
+install-deno.sh
+install-no-sudo.sh
+install.sh
+no-wing
+src/cli/no-sudo.ts
+src/cli/sudo-helper.ts
+src/services/UserNamespaceManager.ts
+deno.lock
