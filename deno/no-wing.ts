@@ -86,20 +86,22 @@ class ProjectDetector {
 class ServiceAccountManager {
   private config: ServiceAccountConfig;
   private baseDir: string;
+  private project: ProjectType;
 
-  constructor(projectName: string) {
+  constructor(project: ProjectType) {
+    this.project = project;
     const homeDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '.';
     this.baseDir = `${homeDir}/.no-wing/service-accounts`;
     
     this.config = {
-      projectName,
-      username: `q-assistant-${projectName}`,
-      workspaceDir: `${this.baseDir}/${projectName}`,
+      projectName: project.name,
+      username: `q-assistant-${project.name}`,
+      workspaceDir: `${this.baseDir}/${project.name}`,
       gitIdentity: {
-        name: `Q Assistant (${projectName})`,
-        email: `q-assistant+${projectName}@no-wing.dev`
+        name: `Q Assistant (${project.name})`,
+        email: `q-assistant+${project.name}@no-wing.dev`
       },
-      awsProfile: `q-assistant-${projectName}`
+      awsProfile: `q-assistant-${project.name}`
     };
   }
 
@@ -119,6 +121,58 @@ class ServiceAccountManager {
     
     // Create launch scripts
     await this.createLaunchScripts();
+    
+    // SAM-specific configuration
+    if (this.project.type === 'SAM') {
+      await this.configureSAMProject();
+    }
+  }
+
+  private async configureSAMProject() {
+    const samConfigPath = 'samconfig.toml';
+    
+    if (await exists(samConfigPath)) {
+      console.log(colors.cyan('🔧 Configuring SAM project for automated deployment...'));
+      
+      try {
+        const samConfig = await Deno.readTextFile(samConfigPath);
+        
+        // Check if confirm_changeset is set to true (problematic)
+        if (samConfig.includes('confirm_changeset = true')) {
+          console.log(colors.yellow('⚠️  Found confirm_changeset = true in samconfig.toml'));
+          console.log('   This causes sam deploy to hang waiting for user input');
+          console.log('   Updating to confirm_changeset = false for automated deployment...');
+          
+          const updatedConfig = samConfig.replace(
+            /confirm_changeset\s*=\s*true/g,
+            'confirm_changeset = false'
+          );
+          
+          await Deno.writeTextFile(samConfigPath, updatedConfig);
+          console.log(colors.green('✅ Updated samconfig.toml for automated deployment'));
+        } else if (!samConfig.includes('confirm_changeset')) {
+          console.log(colors.yellow('⚠️  No confirm_changeset setting found in samconfig.toml'));
+          console.log('   Adding confirm_changeset = false for automated deployment...');
+          
+          // Add confirm_changeset = false to deploy parameters
+          const updatedConfig = samConfig.replace(
+            /(\[default\.deploy\.parameters\])/,
+            '$1\nconfirm_changeset = false'
+          );
+          
+          await Deno.writeTextFile(samConfigPath, updatedConfig);
+          console.log(colors.green('✅ Added confirm_changeset = false to samconfig.toml'));
+        } else {
+          console.log(colors.green('✅ samconfig.toml already configured for automated deployment'));
+        }
+        
+      } catch (error) {
+        console.log(colors.yellow('⚠️  Could not read/update samconfig.toml:', error.message));
+      }
+    } else {
+      console.log(colors.yellow('⚠️  No samconfig.toml found - Q may need to run sam deploy --guided once'));
+      console.log('   Or create samconfig.toml manually with confirm_changeset = false');
+    }
     
     // Create system prompt
     await this.createSystemPrompt();
@@ -305,6 +359,13 @@ class ServiceAccountManager {
       '- Your deployments are separate from the human developer\'s deployments',
       '- Use AWS CLI commands normally - credentials are automatically configured',
       '',
+      '## SAM Deployment Guidelines',
+      '- NEVER use `sam deploy --guided` - configuration is already set up',
+      '- ALWAYS use `sam deploy` (without --guided flag)',
+      '- The samconfig.toml file contains all necessary configuration',
+      '- Your AWS credentials are pre-configured and isolated',
+      '- If deployment fails, check the specific error, don\'t default to --guided',
+      '',
       '---',
       `Generated for project: ${this.config.projectName}`,
       `Service account: ${this.config.gitIdentity.name}`,
@@ -419,7 +480,7 @@ async function setupCommand(options: { force?: boolean; skipAws?: boolean }) {
   
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   console.log(colors.green(`✅ Detected ${project.type} project: ${project.name}`));
   if (project.configFile) {
@@ -467,7 +528,7 @@ async function statusCommand() {
   
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   console.log(colors.yellow('📋 Project Information'));
   console.log(`  Type: ${project.type}`);
@@ -504,6 +565,7 @@ async function statusCommand() {
     console.log('  no-wing launch           # Launch Q chat');
     console.log('  no-wing launch help      # Q CLI help');
     console.log('  no-wing aws-setup        # Configure AWS');
+    console.log('  no-wing sam-config       # Configure SAM deployment');
     console.log('  no-wing prompt           # View system prompt');
     console.log('  no-wing prompt edit      # Edit system prompt');
   } else {
@@ -519,7 +581,7 @@ async function launchCommand(args: string[]) {
 
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   if (!await manager.exists()) {
     console.log(colors.red('❌ Service account not found'));
@@ -542,7 +604,7 @@ async function awsSetupCommand() {
 
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   if (!await manager.exists()) {
     console.log(colors.red('❌ Service account not found'));
@@ -950,13 +1012,93 @@ function generateIAMPolicy(project: ProjectInfo) {
   };
 }
 
+async function samConfigCommand() {
+  console.log(colors.cyan('🛫 no-wing - SAM Configuration'));
+  console.log('');
+
+  const detector = new ProjectDetector();
+  const project = await detector.detect();
+  
+  if (project.type !== 'SAM') {
+    console.log(colors.red('❌ This is not a SAM project'));
+    console.log('SAM configuration is only available for SAM projects');
+    return;
+  }
+
+  console.log(colors.green(`✅ SAM project detected: ${project.name}`));
+  console.log('');
+
+  const samConfigPath = 'samconfig.toml';
+  
+  if (await exists(samConfigPath)) {
+    console.log(colors.cyan('🔍 Checking samconfig.toml...'));
+    
+    try {
+      const samConfig = await Deno.readTextFile(samConfigPath);
+      
+      console.log('Current configuration:');
+      if (samConfig.includes('confirm_changeset = true')) {
+        console.log(colors.red('❌ confirm_changeset = true (causes hanging)'));
+      } else if (samConfig.includes('confirm_changeset = false')) {
+        console.log(colors.green('✅ confirm_changeset = false (automated deployment)'));
+      } else {
+        console.log(colors.yellow('⚠️  confirm_changeset not set'));
+      }
+      
+      if (samConfig.includes('confirm_changeset = true') || !samConfig.includes('confirm_changeset')) {
+        console.log('');
+        console.log(colors.cyan('🔧 Fixing samconfig.toml for automated deployment...'));
+        
+        let updatedConfig = samConfig;
+        
+        if (samConfig.includes('confirm_changeset = true')) {
+          updatedConfig = samConfig.replace(
+            /confirm_changeset\s*=\s*true/g,
+            'confirm_changeset = false'
+          );
+        } else if (!samConfig.includes('confirm_changeset')) {
+          updatedConfig = samConfig.replace(
+            /(\[default\.deploy\.parameters\])/,
+            '$1\nconfirm_changeset = false'
+          );
+        }
+        
+        await Deno.writeTextFile(samConfigPath, updatedConfig);
+        console.log(colors.green('✅ samconfig.toml updated for automated deployment'));
+        console.log('');
+        console.log(colors.cyan('💡 Now Q can use `sam deploy` without hanging!'));
+      } else {
+        console.log('');
+        console.log(colors.green('✅ samconfig.toml is already configured correctly'));
+      }
+      
+    } catch (error) {
+      console.log(colors.red(`❌ Error reading samconfig.toml: ${error.message}`));
+    }
+  } else {
+    console.log(colors.yellow('⚠️  samconfig.toml not found'));
+    console.log('');
+    console.log('To create samconfig.toml, you can either:');
+    console.log('1. Run `sam deploy --guided` once to create it');
+    console.log('2. Create it manually with the following content:');
+    console.log('');
+    console.log(colors.gray('version = 0.1'));
+    console.log(colors.gray('[default.deploy.parameters]'));
+    console.log(colors.gray('stack_name = "your-stack-name"'));
+    console.log(colors.gray('capabilities = "CAPABILITY_IAM"'));
+    console.log(colors.gray('confirm_changeset = false'));
+    console.log(colors.gray('resolve_s3 = true'));
+    console.log(colors.gray('region = "us-east-1"'));
+  }
+}
+
 async function cleanupCommand(options: { force?: boolean }) {
   console.log(colors.cyan('🛫 no-wing - Cleanup'));
   console.log('');
 
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   if (!await manager.exists()) {
     console.log(colors.yellow('No service account to clean up'));
@@ -982,7 +1124,7 @@ async function cleanupCommand(options: { force?: boolean }) {
 async function promptCommand(args: string[]): Promise<void> {
   const detector = new ProjectDetector();
   const project = await detector.detect();
-  const manager = new ServiceAccountManager(project.name);
+  const manager = new ServiceAccountManager(project);
   
   if (!await manager.exists()) {
     console.log(colors.red('❌ No service account found'));
@@ -1051,6 +1193,7 @@ async function main() {
     console.log('  status                       Show service account status');
     console.log('  launch [q-cli-args...]       Launch Q with service account');
     console.log('  aws-setup                    Configure AWS credentials');
+    console.log('  sam-config                   Configure SAM for automated deployment');
     console.log('  cleanup [--force]            Remove service account');
     console.log('  prompt                       Show system prompt');
     console.log('  prompt edit                  Edit system prompt');
@@ -1085,6 +1228,9 @@ async function main() {
         break;
       case 'launch':
         await launchCommand(commandArgs);
+        break;
+      case 'sam-config':
+        await samConfigCommand();
         break;
       case 'aws-setup':
         await awsSetupCommand();
