@@ -119,6 +119,9 @@ class ServiceAccountManager {
     
     // Create launch scripts
     await this.createLaunchScripts();
+    
+    // Create system prompt
+    await this.createSystemPrompt();
   }
 
   async exists(): Promise<boolean> {
@@ -249,6 +252,68 @@ class ServiceAccountManager {
     await Deno.writeTextFile(`${this.config.workspaceDir}/.aws/credentials`, credentialsFile);
   }
 
+  private async createSystemPrompt(): Promise<void> {
+    const systemPrompt = [
+      '# Q Assistant System Prompt - Project Workflow',
+      '',
+      '## Core Workflow',
+      'When starting any task, follow this structured approach:',
+      '',
+      '### 1. Think First',
+      '- Analyze the request thoroughly',
+      '- Consider edge cases and potential issues',
+      '- Think through the implementation approach',
+      '',
+      '### 2. Create Task List',
+      '- Break down the work into verifiable goals',
+      '- Make each goal specific and measurable',
+      '- Prioritize tasks logically',
+      '- Write the task list to `docs/tasks.md` or similar',
+      '',
+      '### 3. Document Architecture',
+      '- Record key architectural decisions in `docs/architecture.md`',
+      '- Explain the reasoning behind technical choices',
+      '- Document any trade-offs or alternatives considered',
+      '- Keep documentation updated as decisions evolve',
+      '',
+      '### 4. Small, Frequent Commits',
+      '- Make commits after each logical unit of work',
+      '- Use descriptive commit messages',
+      '- Commit documentation changes separately from code',
+      '- Each commit should represent a working state',
+      '',
+      '## Documentation Standards',
+      '- Always create/update relevant documentation',
+      '- Use clear, concise language',
+      '- Include examples where helpful',
+      '- Keep docs in sync with code changes',
+      '',
+      '## Commit Message Format',
+      '- Use conventional commit format when appropriate',
+      '- Be specific about what changed and why',
+      '- Reference task items when applicable',
+      '',
+      '## Remember',
+      '- You are Q Assistant working on behalf of the developer',
+      '- Your commits will be attributed to you, not the human',
+      '- Your AWS deployments will use your dedicated service account credentials',
+      '- Maintain high code quality and documentation standards',
+      '- Ask for clarification when requirements are unclear',
+      '',
+      '## AWS Deployment Identity',
+      `- Your AWS profile: ${this.config.awsProfile}`,
+      '- Your deployments are separate from the human developer\'s deployments',
+      '- Use AWS CLI commands normally - credentials are automatically configured',
+      '',
+      '---',
+      `Generated for project: ${this.config.projectName}`,
+      `Service account: ${this.config.gitIdentity.name}`,
+      `Date: ${new Date().toISOString().split('T')[0]}`
+    ].join('\n');
+
+    await Deno.writeTextFile(`${this.config.workspaceDir}/system-prompt.md`, systemPrompt);
+  }
+
   private async createLaunchScripts(): Promise<void> {
     // Create Q launch script
     const launchScript = [
@@ -278,8 +343,39 @@ class ServiceAccountManager {
       `echo "AWS Profile: ${this.config.awsProfile}"`,
       'echo ""',
       '',
-      '# Execute Q CLI',
-      'exec q "$@"'
+      '# Check if system prompt exists and show it',
+      `SYSTEM_PROMPT="${this.config.workspaceDir}/system-prompt.md"`,
+      'if [ -f "$SYSTEM_PROMPT" ]; then',
+      '    echo "📋 Loading system prompt for Q Assistant..."',
+      '    echo "   (System prompt available at: $SYSTEM_PROMPT)"',
+      '    echo ""',
+      '    echo "💡 Reminder: Q will follow the workflow in system-prompt.md:"',
+      '    echo "   1. Think first, 2. Create task list, 3. Document architecture, 4. Small commits"',
+      '    echo "   Use \'no-wing prompt\' to view or \'no-wing prompt edit\' to customize"',
+      '    echo ""',
+      'fi',
+      '',
+      '# Execute Q CLI with service account git identity',
+      '# Note: Environment variables are set only for the Q process, not the shell',
+      '',
+      '# Show system prompt reminder for chat sessions',
+      'if [ -f "$SYSTEM_PROMPT" ] && [ "$1" = "chat" -o $# -eq 0 ]; then',
+      '    echo "💬 Starting Q chat session..."',
+      '    echo "📝 Tip: Share the system prompt with Q by saying:"',
+      '    echo "   \\"Please read the system prompt at $SYSTEM_PROMPT and follow its workflow\\""',
+      '    echo ""',
+      'fi',
+      '',
+      `exec env \\`,
+      `  GIT_AUTHOR_NAME="${this.config.gitIdentity.name}" \\`,
+      `  GIT_AUTHOR_EMAIL="${this.config.gitIdentity.email}" \\`,
+      `  GIT_COMMITTER_NAME="${this.config.gitIdentity.name}" \\`,
+      `  GIT_COMMITTER_EMAIL="${this.config.gitIdentity.email}" \\`,
+      `  GIT_CONFIG_GLOBAL="${this.config.workspaceDir}/.gitconfig" \\`,
+      `  AWS_PROFILE="${this.config.awsProfile}" \\`,
+      `  AWS_CONFIG_FILE="${this.config.workspaceDir}/.aws/config" \\`,
+      `  AWS_SHARED_CREDENTIALS_FILE="${this.config.workspaceDir}/.aws/credentials" \\`,
+      `  q "$@"`
     ].join('\n');
 
     await Deno.writeTextFile(`${this.config.workspaceDir}/bin/launch-q`, launchScript);
@@ -408,6 +504,8 @@ async function statusCommand() {
     console.log('  no-wing launch           # Launch Q chat');
     console.log('  no-wing launch help      # Q CLI help');
     console.log('  no-wing aws-setup        # Configure AWS');
+    console.log('  no-wing prompt           # View system prompt');
+    console.log('  no-wing prompt edit      # Edit system prompt');
   } else {
     console.log(colors.yellow('⚠️  Service account needs setup'));
     console.log('');
@@ -454,11 +552,207 @@ async function awsSetupCommand() {
 
   const config = manager.getConfig();
   
-  console.log(colors.yellow('AWS Credential Setup'));
-  console.log(`Profile: ${config.awsProfile}`);
+  console.log(colors.yellow('🔐 AWS Credential Setup Options'));
+  console.log('');
+  console.log('Choose how to configure Q Assistant AWS credentials:');
+  console.log('');
+  console.log('1. 🎯 Recommended: Create IAM User for Q Assistant');
+  console.log('   - Creates dedicated IAM user with scoped permissions');
+  console.log('   - Uses your existing AWS credentials to set up Q\'s credentials');
+  console.log('   - Proper security isolation');
+  console.log('');
+  console.log('2. 📋 Manual: Enter AWS credentials directly');
+  console.log('   - You provide Access Key ID and Secret Access Key');
+  console.log('   - For existing IAM users or when automatic setup isn\'t possible');
+  console.log('');
+  console.log('3. 🔗 Profile: Use existing AWS profile');
+  console.log('   - Reference an existing AWS CLI profile');
+  console.log('   - Good for development environments');
   console.log('');
 
-  // Simple prompt for credentials
+  const choice = prompt('Select option (1, 2, or 3):');
+  
+  switch (choice) {
+    case '1':
+      await setupIAMUser(config, project);
+      break;
+    case '2':
+      await setupManualCredentials(config);
+      break;
+    case '3':
+      await setupProfileReference(config);
+      break;
+    default:
+      console.log(colors.red('❌ Invalid choice'));
+      return;
+  }
+}
+
+async function setupIAMUser(config: ServiceAccountConfig, project: ProjectInfo) {
+  console.log(colors.cyan('🎯 Setting up IAM User for Q Assistant'));
+  console.log('');
+  
+  // Check if AWS CLI is available and configured
+  try {
+    const whoami = new Deno.Command('aws', {
+      args: ['sts', 'get-caller-identity'],
+      stdout: 'piped',
+      stderr: 'piped'
+    });
+    
+    const { success, stdout } = await whoami.output();
+    
+    if (!success) {
+      console.log(colors.red('❌ AWS CLI not configured or not available'));
+      console.log('Please configure AWS CLI first with your admin credentials:');
+      console.log('  aws configure');
+      console.log('');
+      console.log('Or choose option 2 for manual setup');
+      return;
+    }
+    
+    const identity = JSON.parse(new TextDecoder().decode(stdout));
+    console.log(colors.green(`✅ Using your AWS identity: ${identity.Arn}`));
+    console.log('');
+    
+  } catch (error) {
+    console.log(colors.red('❌ Failed to check AWS identity'));
+    console.log('Please ensure AWS CLI is installed and configured');
+    return;
+  }
+
+  const userName = `q-assistant-${config.projectName}`;
+  const policyName = `QAssistantPolicy-${config.projectName}`;
+  
+  console.log(`Creating IAM user: ${userName}`);
+  console.log(`Creating policy: ${policyName}`);
+  console.log('');
+  
+  try {
+    // Create IAM policy based on project type
+    const policyDocument = generateIAMPolicy(project);
+    
+    // Create policy
+    console.log('📝 Creating IAM policy...');
+    const createPolicy = new Deno.Command('aws', {
+      args: [
+        'iam', 'create-policy',
+        '--policy-name', policyName,
+        '--policy-document', JSON.stringify(policyDocument),
+        '--description', `Q Assistant permissions for ${config.projectName} project`
+      ],
+      stdout: 'piped',
+      stderr: 'piped'
+    });
+    
+    const policyResult = await createPolicy.output();
+    let policyArn: string;
+    
+    if (policyResult.success) {
+      const policyData = JSON.parse(new TextDecoder().decode(policyResult.stdout));
+      policyArn = policyData.Policy.Arn;
+      console.log(colors.green(`✅ Policy created: ${policyArn}`));
+    } else {
+      const error = new TextDecoder().decode(policyResult.stderr);
+      if (error.includes('EntityAlreadyExists')) {
+        // Policy exists, get its ARN
+        const getPolicy = new Deno.Command('aws', {
+          args: ['iam', 'get-policy', '--policy-arn', `arn:aws:iam::${await getAccountId()}:policy/${policyName}`],
+          stdout: 'piped'
+        });
+        const existingPolicy = await getPolicy.output();
+        const existingPolicyData = JSON.parse(new TextDecoder().decode(existingPolicy.stdout));
+        policyArn = existingPolicyData.Policy.Arn;
+        console.log(colors.yellow(`⚠️  Policy already exists: ${policyArn}`));
+      } else {
+        throw new Error(`Failed to create policy: ${error}`);
+      }
+    }
+
+    // Create IAM user
+    console.log('👤 Creating IAM user...');
+    const createUser = new Deno.Command('aws', {
+      args: [
+        'iam', 'create-user',
+        '--user-name', userName,
+        '--tags', `Key=Purpose,Value=QAssistant`, `Key=Project,Value=${config.projectName}`
+      ],
+      stdout: 'piped',
+      stderr: 'piped'
+    });
+    
+    const userResult = await createUser.output();
+    if (userResult.success) {
+      console.log(colors.green(`✅ User created: ${userName}`));
+    } else {
+      const error = new TextDecoder().decode(userResult.stderr);
+      if (!error.includes('EntityAlreadyExists')) {
+        throw new Error(`Failed to create user: ${error}`);
+      }
+      console.log(colors.yellow(`⚠️  User already exists: ${userName}`));
+    }
+
+    // Attach policy to user
+    console.log('🔗 Attaching policy to user...');
+    const attachPolicy = new Deno.Command('aws', {
+      args: [
+        'iam', 'attach-user-policy',
+        '--user-name', userName,
+        '--policy-arn', policyArn
+      ]
+    });
+    
+    await attachPolicy.output();
+    console.log(colors.green('✅ Policy attached to user'));
+
+    // Create access key
+    console.log('🔑 Creating access key...');
+    const createAccessKey = new Deno.Command('aws', {
+      args: [
+        'iam', 'create-access-key',
+        '--user-name', userName
+      ],
+      stdout: 'piped'
+    });
+    
+    const keyResult = await createAccessKey.output();
+    const keyData = JSON.parse(new TextDecoder().decode(keyResult.stdout));
+    const accessKey = keyData.AccessKey;
+
+    // Write credentials to service account
+    await writeAWSCredentials(config, accessKey.AccessKeyId, accessKey.SecretAccessKey);
+    
+    console.log('');
+    console.log(colors.green('✅ Q Assistant AWS setup complete!'));
+    console.log('');
+    console.log(colors.yellow('📋 What was created:'));
+    console.log(`  • IAM User: ${userName}`);
+    console.log(`  • IAM Policy: ${policyName}`);
+    console.log(`  • Access Key: ${accessKey.AccessKeyId}`);
+    console.log(`  • AWS Profile: ${config.awsProfile}`);
+    console.log('');
+    console.log(colors.cyan('🔐 Security Notes:'));
+    console.log('  • Q Assistant has scoped permissions for this project');
+    console.log('  • Your personal AWS credentials remain separate');
+    console.log('  • Access key is stored in service account workspace only');
+    
+  } catch (error) {
+    console.log(colors.red(`❌ Failed to set up IAM user: ${error.message}`));
+    console.log('');
+    console.log('You can try:');
+    console.log('  • Option 2: Manual credential setup');
+    console.log('  • Option 3: Use existing AWS profile');
+  }
+}
+
+async function setupManualCredentials(config: ServiceAccountConfig) {
+  console.log(colors.cyan('📋 Manual AWS Credential Setup'));
+  console.log('');
+  
+  console.log('Enter AWS credentials for Q Assistant:');
+  console.log('(These should be for a dedicated IAM user with appropriate permissions)');
+  console.log('');
+
   const accessKeyId = prompt('AWS Access Key ID:');
   if (!accessKeyId) {
     console.log(colors.red('❌ Access Key ID is required'));
@@ -471,7 +765,60 @@ async function awsSetupCommand() {
     return;
   }
 
-  // Write credentials
+  await writeAWSCredentials(config, accessKeyId, secretAccessKey);
+  
+  console.log('');
+  console.log(colors.green('✅ AWS credentials configured manually'));
+  console.log(`Profile: ${config.awsProfile}`);
+}
+
+async function setupProfileReference(config: ServiceAccountConfig) {
+  console.log(colors.cyan('🔗 AWS Profile Reference Setup'));
+  console.log('');
+  
+  // List available profiles
+  try {
+    const listProfiles = new Deno.Command('aws', {
+      args: ['configure', 'list-profiles'],
+      stdout: 'piped'
+    });
+    
+    const { stdout } = await listProfiles.output();
+    const profiles = new TextDecoder().decode(stdout).trim().split('\n');
+    
+    console.log('Available AWS profiles:');
+    profiles.forEach((profile, index) => {
+      console.log(`  ${index + 1}. ${profile}`);
+    });
+    console.log('');
+    
+    const profileName = prompt('Enter profile name to use:');
+    if (!profileName || !profiles.includes(profileName)) {
+      console.log(colors.red('❌ Invalid profile name'));
+      return;
+    }
+    
+    // Create config that references the profile
+    const awsConfig = [
+      `[profile ${config.awsProfile}]`,
+      `source_profile = ${profileName}`,
+      `region = ${await getDefaultRegion()}`
+    ].join('\n');
+    
+    await Deno.writeTextFile(`${config.workspaceDir}/.aws/config`, awsConfig);
+    
+    console.log('');
+    console.log(colors.green('✅ AWS profile reference configured'));
+    console.log(`Q Assistant profile: ${config.awsProfile}`);
+    console.log(`Source profile: ${profileName}`);
+    
+  } catch (error) {
+    console.log(colors.red('❌ Failed to list AWS profiles'));
+    console.log('Please ensure AWS CLI is installed and configured');
+  }
+}
+
+async function writeAWSCredentials(config: ServiceAccountConfig, accessKeyId: string, secretAccessKey: string) {
   const credentials = [
     `[${config.awsProfile}]`,
     `aws_access_key_id = ${accessKeyId}`,
@@ -479,10 +826,128 @@ async function awsSetupCommand() {
   ].join('\n');
 
   await Deno.writeTextFile(`${config.workspaceDir}/.aws/credentials`, credentials);
+  
+  const awsConfig = [
+    `[profile ${config.awsProfile}]`,
+    `region = ${await getDefaultRegion()}`,
+    'output = json'
+  ].join('\n');
+  
+  await Deno.writeTextFile(`${config.workspaceDir}/.aws/config`, awsConfig);
+}
 
-  console.log('');
-  console.log(colors.green('✅ AWS credentials configured'));
-  console.log(`Profile: ${config.awsProfile}`);
+async function getAccountId(): Promise<string> {
+  const whoami = new Deno.Command('aws', {
+    args: ['sts', 'get-caller-identity', '--query', 'Account', '--output', 'text'],
+    stdout: 'piped'
+  });
+  
+  const { stdout } = await whoami.output();
+  return new TextDecoder().decode(stdout).trim();
+}
+
+async function getDefaultRegion(): Promise<string> {
+  try {
+    const region = new Deno.Command('aws', {
+      args: ['configure', 'get', 'region'],
+      stdout: 'piped'
+    });
+    
+    const { stdout } = await region.output();
+    const result = new TextDecoder().decode(stdout).trim();
+    return result || 'us-east-1';
+  } catch {
+    return 'us-east-1';
+  }
+}
+
+function generateIAMPolicy(project: ProjectInfo) {
+  const basePermissions = [
+    "logs:CreateLogGroup",
+    "logs:CreateLogStream", 
+    "logs:PutLogEvents",
+    "logs:DescribeLogGroups",
+    "logs:DescribeLogStreams"
+  ];
+
+  let permissions = [...basePermissions];
+
+  switch (project.type) {
+    case 'SAM':
+      permissions.push(
+        // CloudFormation
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplate",
+        // Lambda
+        "lambda:CreateFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:GetFunction",
+        "lambda:ListFunctions",
+        "lambda:InvokeFunction",
+        // API Gateway
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:DELETE",
+        // S3 for deployment artifacts
+        "s3:CreateBucket",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        // IAM for Lambda execution roles
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:GetRole",
+        "iam:PassRole"
+      );
+      break;
+      
+    case 'CDK':
+      permissions.push(
+        // CloudFormation (CDK uses CloudFormation)
+        "cloudformation:*",
+        // S3 for CDK assets
+        "s3:*",
+        // IAM for CDK-created resources
+        "iam:*",
+        // EC2 for VPC resources
+        "ec2:Describe*",
+        "ec2:CreateVpc",
+        "ec2:CreateSubnet",
+        "ec2:CreateSecurityGroup",
+        // Lambda
+        "lambda:*"
+      );
+      break;
+      
+    default:
+      // Generic permissions
+      permissions.push(
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "cloudformation:DescribeStacks",
+        "lambda:GetFunction",
+        "lambda:ListFunctions"
+      );
+  }
+
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: permissions,
+        Resource: "*"
+      }
+    ]
+  };
 }
 
 async function cleanupCommand(options: { force?: boolean }) {
@@ -514,6 +979,58 @@ async function cleanupCommand(options: { force?: boolean }) {
   console.log(`Workspace: ${config.workspaceDir}`);
 }
 
+async function promptCommand(args: string[]): Promise<void> {
+  const detector = new ProjectDetector();
+  const project = await detector.detect();
+  const manager = new ServiceAccountManager(project.name);
+  
+  if (!await manager.exists()) {
+    console.log(colors.red('❌ No service account found'));
+    console.log('Run "no-wing setup" first');
+    return;
+  }
+
+  const promptPath = `${manager.config.workspaceDir}/system-prompt.md`;
+  
+  if (args.length === 0) {
+    // Show the system prompt
+    try {
+      const content = await Deno.readTextFile(promptPath);
+      console.log(colors.cyan('📋 Q Assistant System Prompt'));
+      console.log(colors.gray('─'.repeat(50)));
+      console.log(content);
+      console.log(colors.gray('─'.repeat(50)));
+      console.log(colors.yellow(`📍 Location: ${promptPath}`));
+    } catch (error) {
+      console.log(colors.red('❌ System prompt not found'));
+      console.log('Run "no-wing setup" to regenerate');
+    }
+  } else if (args[0] === 'edit') {
+    // Edit the system prompt
+    const editor = Deno.env.get('EDITOR') || 'nano';
+    console.log(colors.cyan(`📝 Opening system prompt in ${editor}...`));
+    
+    const command = new Deno.Command(editor, {
+      args: [promptPath],
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+    });
+    
+    const { success } = await command.output();
+    
+    if (success) {
+      console.log(colors.green('✅ System prompt updated'));
+      console.log(colors.yellow('💡 Changes will take effect on next "no-wing launch"'));
+    } else {
+      console.log(colors.red('❌ Failed to edit system prompt'));
+    }
+  } else {
+    console.log(colors.red('❌ Unknown prompt command'));
+    console.log('Usage: no-wing prompt [edit]');
+  }
+}
+
 // Main CLI
 async function main() {
   const args = parseArgs(Deno.args, {
@@ -535,6 +1052,8 @@ async function main() {
     console.log('  launch [q-cli-args...]       Launch Q with service account');
     console.log('  aws-setup                    Configure AWS credentials');
     console.log('  cleanup [--force]            Remove service account');
+    console.log('  prompt                       Show system prompt');
+    console.log('  prompt edit                  Edit system prompt');
     console.log('');
     console.log('Examples:');
     console.log('  no-wing setup                # Create service account');
@@ -572,6 +1091,9 @@ async function main() {
         break;
       case 'cleanup':
         await cleanupCommand({ force: args.force });
+        break;
+      case 'prompt':
+        await promptCommand(args._.slice(1));
         break;
       default:
         console.log(colors.red(`Unknown command: ${command}`));
