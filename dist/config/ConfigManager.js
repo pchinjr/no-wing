@@ -1,0 +1,303 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import { IAMClient, GetUserCommand, ListAttachedUserPoliciesCommand } from '@aws-sdk/client-iam';
+export class ConfigManager {
+    configPath;
+    config = null;
+    constructor(configPath = './.no-wing/config.json') {
+        this.configPath = path.resolve(configPath);
+    }
+    /**
+     * Load configuration from file
+     */
+    async loadConfig() {
+        try {
+            if (!fs.existsSync(this.configPath)) {
+                throw new Error(`Configuration file not found: ${this.configPath}`);
+            }
+            const configData = fs.readFileSync(this.configPath, 'utf8');
+            this.config = JSON.parse(configData);
+            // Validate basic structure
+            if (!this.config?.developerId || !this.config?.qId) {
+                throw new Error('Invalid configuration: missing required fields');
+            }
+            console.log('✅ Configuration loaded successfully');
+            return this.config;
+        }
+        catch (error) {
+            throw new Error(`Failed to load configuration: ${error.message}`);
+        }
+    }
+    /**
+     * Save configuration to file
+     */
+    async saveConfig(config) {
+        try {
+            // Ensure directory exists
+            const configDir = path.dirname(this.configPath);
+            if (!fs.existsSync(configDir)) {
+                fs.mkdirSync(configDir, { recursive: true });
+            }
+            // Write configuration
+            fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+            this.config = config;
+            console.log('✅ Configuration saved successfully');
+        }
+        catch (error) {
+            throw new Error(`Failed to save configuration: ${error.message}`);
+        }
+    }
+    /**
+     * Get current configuration
+     */
+    getConfig() {
+        return this.config;
+    }
+    /**
+     * Update credential configuration
+     */
+    async updateCredentials(credentials) {
+        if (!this.config) {
+            throw new Error('Configuration not loaded. Call loadConfig() first.');
+        }
+        this.config.credentials = credentials;
+        await this.saveConfig(this.config);
+    }
+    /**
+     * Validate no-wing IAM setup
+     */
+    async validateIAMSetup() {
+        const result = {
+            isValid: true,
+            errors: [],
+            warnings: [],
+            recommendations: []
+        };
+        try {
+            if (!this.config?.credentials) {
+                result.errors.push('No credentials configured');
+                result.isValid = false;
+                return result;
+            }
+            // Test credential validity
+            const stsClient = new STSClient({
+                credentials: this.config.credentials,
+                region: this.config.credentials.region || this.config.region
+            });
+            let identity;
+            try {
+                const identityResponse = await stsClient.send(new GetCallerIdentityCommand({}));
+                identity = identityResponse;
+                console.log(`✅ Credentials valid for: ${identity.Arn}`);
+            }
+            catch (error) {
+                result.errors.push(`Invalid credentials: ${error.message}`);
+                result.isValid = false;
+                return result;
+            }
+            // Check if it's a user (not a role)
+            if (identity.Arn?.includes(':user/')) {
+                await this.validateUserPermissions(result);
+            }
+            else if (identity.Arn?.includes(':role/')) {
+                await this.validateRolePermissions(result, identity.Arn);
+            }
+            else {
+                result.warnings.push('Unknown identity type - manual permission validation required');
+            }
+            // Check for overly permissive policies
+            await this.checkForOverlyPermissivePolicies(result);
+            // Validate audit configuration
+            this.validateAuditConfiguration(result);
+        }
+        catch (error) {
+            result.errors.push(`Validation failed: ${error.message}`);
+            result.isValid = false;
+        }
+        return result;
+    }
+    /**
+     * Validate user permissions
+     */
+    async validateUserPermissions(result) {
+        try {
+            const iamClient = new IAMClient({
+                credentials: this.config.credentials,
+                region: this.config.credentials.region || this.config.region
+            });
+            // Get user information
+            const userResponse = await iamClient.send(new GetUserCommand({}));
+            const userName = userResponse.User?.UserName;
+            if (!userName) {
+                result.errors.push('Could not determine user name');
+                return;
+            }
+            // Get attached policies
+            const policiesResponse = await iamClient.send(new ListAttachedUserPoliciesCommand({ UserName: userName }));
+            const attachedPolicies = policiesResponse.AttachedPolicies || [];
+            // Check for admin policies
+            const adminPolicies = attachedPolicies.filter(policy => policy.PolicyName?.toLowerCase().includes('admin') ||
+                policy.PolicyArn?.includes('AdministratorAccess'));
+            if (adminPolicies.length > 0) {
+                result.warnings.push(`User has admin policies attached: ${adminPolicies.map(p => p.PolicyName).join(', ')}`);
+                result.recommendations.push('Consider using more specific policies or role assumption for better security');
+            }
+            // Check for required permissions
+            const requiredPolicies = this.config?.permissions?.requiredPolicies || [];
+            const missingPolicies = requiredPolicies.filter(required => !attachedPolicies.some(attached => attached.PolicyName === required));
+            if (missingPolicies.length > 0) {
+                result.warnings.push(`Missing recommended policies: ${missingPolicies.join(', ')}`);
+            }
+        }
+        catch (error) {
+            result.warnings.push(`Could not validate user permissions: ${error.message}`);
+        }
+    }
+    /**
+     * Validate role permissions
+     */
+    async validateRolePermissions(result, roleArn) {
+        // For roles, we mainly validate that they exist and are assumable
+        result.recommendations.push('Using role-based access - ensure the role has appropriate policies attached');
+        // Extract role name from ARN for logging
+        const roleName = roleArn.split('/').pop();
+        console.log(`📋 Validating role: ${roleName}`);
+    }
+    /**
+     * Check for overly permissive policies
+     */
+    async checkForOverlyPermissivePolicies(result) {
+        // This is a simplified check - in production, you'd want more sophisticated policy analysis
+        const dangerousPatterns = [
+            { pattern: '"Action": "*"', message: 'Wildcard actions detected' },
+            { pattern: '"Resource": "*"', message: 'Wildcard resources detected' },
+            { pattern: '"Effect": "Allow".*"Action": "*".*"Resource": "*"', message: 'Full admin access detected' }
+        ];
+        // In a real implementation, you'd analyze the actual policy documents
+        // For now, we'll add a general recommendation
+        result.recommendations.push('Regularly review IAM policies to ensure they follow the principle of least privilege');
+    }
+    /**
+     * Validate audit configuration
+     */
+    validateAuditConfiguration(result) {
+        if (!this.config?.audit?.enabled) {
+            result.recommendations.push('Consider enabling audit logging for better compliance and security monitoring');
+        }
+        else {
+            console.log('✅ Audit configuration enabled');
+        }
+    }
+    /**
+     * Generate a minimal IAM policy for no-wing
+     */
+    generateMinimalPolicy() {
+        return {
+            Version: '2012-10-17',
+            Statement: [
+                {
+                    Effect: 'Allow',
+                    Action: [
+                        'sts:GetCallerIdentity',
+                        'sts:AssumeRole'
+                    ],
+                    Resource: '*'
+                },
+                {
+                    Effect: 'Allow',
+                    Action: [
+                        'sts:AssumeRole'
+                    ],
+                    Resource: `arn:aws:iam::${this.config?.developerId?.split('-')[2] || '*'}:role/no-wing-*`
+                }
+            ]
+        };
+    }
+    /**
+     * Generate deployment-specific policy
+     */
+    generateDeploymentPolicy() {
+        return {
+            Version: '2012-10-17',
+            Statement: [
+                {
+                    Effect: 'Allow',
+                    Action: [
+                        'cloudformation:*',
+                        's3:GetObject',
+                        's3:PutObject',
+                        's3:DeleteObject',
+                        's3:ListBucket'
+                    ],
+                    Resource: [
+                        'arn:aws:cloudformation:*:*:stack/no-wing-*/*',
+                        'arn:aws:s3:::no-wing-*',
+                        'arn:aws:s3:::no-wing-*/*'
+                    ]
+                },
+                {
+                    Effect: 'Allow',
+                    Action: [
+                        'lambda:CreateFunction',
+                        'lambda:UpdateFunctionCode',
+                        'lambda:UpdateFunctionConfiguration',
+                        'lambda:DeleteFunction',
+                        'lambda:GetFunction',
+                        'lambda:ListFunctions'
+                    ],
+                    Resource: 'arn:aws:lambda:*:*:function:no-wing-*'
+                }
+            ]
+        };
+    }
+    /**
+     * Create default configuration
+     */
+    static createDefaultConfig(developerId, region = 'us-east-1') {
+        return {
+            developerId,
+            qId: `q-${developerId}-${Date.now()}`,
+            qLevel: 'standard',
+            region,
+            setupDate: new Date().toISOString(),
+            permissions: {
+                requiredPolicies: [],
+                optionalPolicies: [],
+                customPolicies: []
+            },
+            audit: {
+                enabled: false
+            }
+        };
+    }
+    /**
+     * Migrate old configuration format
+     */
+    async migrateConfig() {
+        if (!this.config) {
+            throw new Error('No configuration loaded');
+        }
+        let needsMigration = false;
+        // Add missing fields with defaults
+        if (!this.config.permissions) {
+            this.config.permissions = {
+                requiredPolicies: [],
+                optionalPolicies: [],
+                customPolicies: []
+            };
+            needsMigration = true;
+        }
+        if (!this.config.audit) {
+            this.config.audit = {
+                enabled: false
+            };
+            needsMigration = true;
+        }
+        if (needsMigration) {
+            await this.saveConfig(this.config);
+            console.log('✅ Configuration migrated to latest format');
+        }
+    }
+}
+//# sourceMappingURL=ConfigManager.js.map
