@@ -2,10 +2,10 @@
 
 **Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation**
 
-Configure Amazon Q with isolated workspaces, dedicated git identity, and AWS credentials per project. Q operates with proper attribution and isolated permissions - never masquerading as you again.
+Configure Amazon Q with **credential separation**, dedicated identity, and comprehensive audit trails. Q operates with proper attribution and isolated permissions - never masquerading as you again.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/pchinjr/no-wing/releases/tag/v1.0.0)
-[![Deno](https://img.shields.io/badge/runtime-Deno-00ADD8.svg)](https://deno.land/)
+[![TypeScript](https://img.shields.io/badge/language-TypeScript-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 🎯 The Problem
@@ -16,23 +16,83 @@ When you give Amazon Q command line access, it performs actions using YOUR ident
 - ❌ Q pushes to git as YOU
 - ❌ No clear audit trail of human vs AI actions
 - ❌ Security risk if Q is compromised
+- ❌ Compliance violations in enterprise environments
 
-## 🛡️ The Solution
+## 🛡️ The Solution: Credential Separation
 
-**no-wing** creates isolated service account workspaces for Q in each project:
-- ✅ Q has its own isolated workspace (`~/.no-wing/service-accounts/{project}/`)
-- ✅ Q commits with its own git identity (`Q Assistant (project)`)
-- ✅ Q uses its own AWS credentials with scoped permissions
-- ✅ Complete audit trail of Q vs human actions
-- ✅ **No sudo required** - uses user-space isolation
-- ✅ **Built with Deno** - single binary, no dependencies
+**no-wing** implements **credential separation** between you and Amazon Q:
+
+### 🔐 Dual Identity System
+```
+┌─────────────────┐    ┌─────────────────┐
+│   User Actions  │    │   Q Actions     │
+│                 │    │                 │
+│ • Configuration │    │ • Deployments   │
+│ • Validation    │    │ • Automation    │
+│ • Manual Ops    │    │ • Role Mgmt     │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐
+│ User Credentials│    │ Q Credentials   │
+│ (Your AWS)      │    │ (Service Acct)  │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         └───────────┬───────────┘
+                     ▼
+            ┌─────────────────┐
+            │   CloudTrail    │
+            │ (Audit Trail)   │
+            └─────────────────┘
+```
+
+### ✅ Key Benefits
+- **🔐 Security**: Q uses dedicated service credentials, not your personal AWS access
+- **📝 Audit Trail**: Clear separation between human and AI actions in CloudTrail
+- **🎯 Least Privilege**: Q gets only the permissions it needs for specific operations
+- **🛡️ Compliance**: Full audit logs and compliance reporting for enterprise requirements
+- **🔄 Intelligent Permissions**: Automatic role discovery and permission elevation
+- **⚡ Performance**: Client caching and session management for efficiency
+
+## ✨ Features
+
+### 🔄 Credential Management
+- **Dual Context System**: Separate user and Q credential contexts
+- **Automatic Switching**: Context switches based on operation type
+- **Session Management**: Efficient role assumption with caching
+- **Credential Validation**: Real-time credential status checking
+
+### 🎭 Permission Management
+- **Role Discovery**: Automatically finds appropriate roles for operations
+- **Smart Elevation**: Intelligent permission escalation with fallback strategies
+- **Graceful Degradation**: Read-only validation, dry-runs when permissions insufficient
+- **Learning System**: Remembers successful permission patterns
+
+### 📊 Audit & Compliance
+- **Structured Logging**: All operations logged with full context attribution
+- **CloudTrail Integration**: Seamless integration with AWS CloudTrail
+- **Compliance Reports**: Generate detailed reports for security teams
+- **Violation Detection**: Automatic detection of security policy violations
+
+### 🚀 Deployment Integration
+- **CloudFormation Support**: Full CloudFormation deployment with credential separation
+- **Template Validation**: Pre-deployment validation with user credentials
+- **Rollback Management**: Automated rollback with audit trails
+- **S3 Integration**: Template upload and artifact management
+
+### 💻 Developer Experience
+- **CLI Interface**: Comprehensive command-line interface
+- **TypeScript API**: Full programmatic access for custom integrations
+- **Testing Suite**: Comprehensive test coverage with integration tests
+- **Debug Support**: Verbose logging and diagnostic commands
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- [Deno](https://deno.land/) installed
+- Node.js 18+ or [Deno](https://deno.land/) installed
 - [Amazon Q CLI](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/cli-install.html) installed
+- AWS CLI configured with your credentials
 
 ### Installation
 
@@ -41,13 +101,193 @@ When you give Amazon Q command line access, it performs actions using YOUR ident
 git clone https://github.com/pchinjr/no-wing.git
 cd no-wing
 
-# Install globally (one-time setup, requires sudo only for global command creation)
+# Install dependencies and build
+npm install
+npm run build
+
+# Or use Deno (legacy support)
 ./install-deno-final.sh
+```
+
+### Setup Q Credentials
+
+```bash
+# Setup with AWS profile
+no-wing setup --profile no-wing-profile --region us-east-1
+
+# Or setup with IAM role
+no-wing setup --role-arn arn:aws:iam::123456789012:role/no-wing-role
+
+# Verify setup
+no-wing status --verbose
 ```
 
 ### Basic Usage
 
 ```bash
+# Deploy with Q credentials (automatic context switching)
+no-wing deploy template.yaml --stack-name my-app
+
+# Check credential status
+no-wing credentials whoami
+
+# Generate audit report
+no-wing audit report --start 2024-01-01 --end 2024-01-31
+
+# List available roles
+no-wing permissions list-roles
+```
+
+## 📚 Documentation
+
+- **[Credential Separation Guide](docs/CREDENTIAL_SEPARATION.md)** - Complete implementation guide
+- **[API Reference](docs/CREDENTIAL_SEPARATION.md#api-reference)** - TypeScript API documentation
+- **[Security Best Practices](docs/CREDENTIAL_SEPARATION.md#security-best-practices)** - IAM policies and security guidelines
+- **[Troubleshooting](docs/CREDENTIAL_SEPARATION.md#troubleshooting)** - Common issues and solutions
+
+## 🔧 CLI Commands
+
+### Credential Management
+```bash
+no-wing credentials switch user|no-wing    # Switch credential context
+no-wing credentials test                   # Test current credentials
+no-wing credentials whoami                 # Show current identity
+```
+
+### Deployment Operations
+```bash
+no-wing deploy <template>                  # Deploy CloudFormation stack
+no-wing deploy <template> --dry-run        # Validate without deploying
+no-wing rollback <stack-name>              # Rollback deployment
+```
+
+### Permission Management
+```bash
+no-wing permissions list-roles             # List available roles
+no-wing permissions test-role <role-arn>   # Test role assumption
+no-wing permissions requests               # Show permission requests
+```
+
+### Audit & Compliance
+```bash
+no-wing audit events                       # Query audit events
+no-wing audit report                       # Generate compliance report
+no-wing audit verify-cloudtrail            # Verify CloudTrail integration
+```
+
+### Configuration
+```bash
+no-wing setup                              # Initial setup
+no-wing status                             # Show current status
+no-wing config validate                    # Validate IAM setup
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+1. **CredentialManager** - Manages credential contexts and switching
+2. **AWSClientFactory** - Provides context-aware AWS SDK clients
+3. **RoleManager** - Handles role discovery and assumption
+4. **PermissionElevator** - Implements intelligent permission elevation
+5. **AuditLogger** - Comprehensive audit logging and compliance
+6. **DeploymentManager** - CloudFormation deployment with credential separation
+7. **NoWingCLI** - Command-line interface
+
+### Security Model
+
+```
+User Operations          Q Operations
+     │                       │
+     ▼                       ▼
+┌─────────────┐    ┌─────────────┐
+│ User Creds  │    │ Q Creds     │
+│ • Personal  │    │ • Service   │
+│ • Limited   │    │ • Scoped    │
+│ • Read-only │    │ • Audited   │
+└─────────────┘    └─────────────┘
+     │                       │
+     └───────────┬───────────┘
+                 ▼
+        ┌─────────────┐
+        │ CloudTrail  │
+        │ • Separate  │
+        │   identities│
+        │ • Full      │
+        │   audit     │
+        └─────────────┘
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:credentials      # Credential management tests
+npm run test:permissions      # Permission management tests
+npm run test:integration      # Full integration tests
+
+# Build and test
+npm run build
+npm run test:integration
+```
+
+## 🔒 Security Considerations
+
+### IAM Best Practices
+
+1. **Minimal Permissions**: Q gets only required permissions for specific operations
+2. **Role-Based Access**: Use role assumption instead of direct permissions
+3. **Time-Limited Sessions**: All assumed roles have expiration times
+4. **Audit Everything**: All operations are logged with full context
+
+### Recommended IAM Setup
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["sts:GetCallerIdentity", "sts:AssumeRole"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::*:role/no-wing-*"
+    }
+  ]
+}
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass (`npm test`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Amazon Q team for the CLI and developer experience
+- AWS SDK team for comprehensive AWS integration
+- TypeScript community for excellent tooling
+- Open source contributors who make projects like this possible
+
+---
+
+**Made with ❤️ for secure, auditable AI automation**
 # 1. Set up Q service account for your project (no sudo required!)
 cd your-project
 no-wing setup
