@@ -1,16 +1,17 @@
 #!/usr/bin/env ts-node
 
 import process from "node:process";
-import { CredentialManager } from '../credentials/CredentialManager';
-import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { ConfigManager } from '../config/ConfigManager';
-import { RoleManager, OperationContext } from '../permissions/RoleManager';
-import { PermissionElevator } from '../permissions/PermissionElevator';
-import { AuditLogger } from '../audit/AuditLogger';
-import { DeploymentManager } from '../deployment/DeploymentManager';
-import { NoWingCLI } from '../cli/NoWingCLI';
-import * as fs from 'fs';
-import * as _path from 'path';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
+import { ConfigManager } from '../config/ConfigManager.ts';
+import { RoleManager, OperationContext } from '../permissions/RoleManager.ts';
+import { PermissionElevator } from '../permissions/PermissionElevator.ts';
+import { AuditLogger } from '../audit/AuditLogger.ts';
+import { DeploymentManager } from '../deployment/DeploymentManager.ts';
+import { NoWingCLI } from '../cli/NoWingCLI.ts';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
 
 interface TestResult {
   name: string;
@@ -126,7 +127,7 @@ export class IntegrationTestRunner {
       }
     };
 
-    fs.writeFileSync('./.no-wing/test-template.json', JSON.stringify(testTemplate, null, 2));
+    await writeTextFile('./.no-wing/test-template.json', JSON.stringify(testTemplate, null, 2));
     console.log('✅ Test environment setup complete');
   }
 
@@ -279,8 +280,8 @@ export class IntegrationTestRunner {
     // Test 2: Template Processing
     suite.tests.push(await this.runTest('Template Processing', () => {
       const templatePath = './.no-wing/test-template.json';
-      const templateExists = fs.existsSync(templatePath);
-      const templateContent = templateExists ? JSON.parse(fs.readFileSync(templatePath, 'utf8')) : null;
+      const templateExists = existsSync(templatePath);
+      const templateContent = templateExists ? JSON.parse(await readTextFile(templatePath)) : null;
       return {
         templateExists,
         hasResources: !!templateContent?.Resources,
@@ -639,7 +640,7 @@ export class IntegrationTestRunner {
       suites: this.testResults
     };
     
-    fs.writeFileSync('./.no-wing/test-report.json', JSON.stringify(report, null, 2));
+    await writeTextFile('./.no-wing/test-report.json', JSON.stringify(report, null, 2));
     console.log(`\n📄 Detailed report saved to: ./.no-wing/test-report.json`);
     
     if (totalFailed > 0) {
@@ -662,7 +663,7 @@ export class IntegrationTestRunner {
       ];
       
       for (const file of testFiles) {
-        if (fs.existsSync(file)) {
+        if (existsSync(file)) {
           fs.unlinkSync(file);
         }
       }

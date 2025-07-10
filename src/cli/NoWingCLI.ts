@@ -1,16 +1,16 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S deno run --allow-all
 
-import process from "node:process";
-import { Command } from 'commander';
-import { CredentialManager } from '../credentials/CredentialManager';
-import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { ConfigManager } from '../config/ConfigManager';
-import { RoleManager } from '../permissions/RoleManager';
-import { PermissionElevator } from '../permissions/PermissionElevator';
-import { AuditLogger } from '../audit/AuditLogger';
-import { DeploymentManager } from '../deployment/DeploymentManager';
-import * as fs from 'fs';
-import * as path from 'path';
+// Deno-compatible imports
+import { Command } from 'npm:commander@11.1.0';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
+import { ConfigManager } from '../config/ConfigManager.ts';
+import { RoleManager } from '../permissions/RoleManager.ts';
+import { PermissionElevator } from '../permissions/PermissionElevator.ts';
+import { AuditLogger } from '../audit/AuditLogger.ts';
+import { DeploymentManager } from '../deployment/DeploymentManager.ts';
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { join, dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
 
 export class NoWingCLI {
   private program: Command;
@@ -287,11 +287,11 @@ export class NoWingCLI {
     try {
       // Parse options
       const config = {
-        stackName: options.stackName || path.basename(template, path.extname(template)),
+        stackName: options.stackName || basename(template, path.extname(template)),
         templatePath: template,
         region: options.region,
         s3Bucket: options.s3Bucket,
-        parameters: options.parameters ? JSON.parse(fs.readFileSync(options.parameters, 'utf8')) : undefined,
+        parameters: options.parameters ? JSON.parse(await readTextFile(options.parameters)) : undefined,
         tags: options.tags ? this.parseTags(options.tags) : undefined,
         capabilities: options.capabilities ? options.capabilities.split(',') : undefined
       };
@@ -664,14 +664,3 @@ export class NoWingCLI {
     return tags;
   }
 }
-
-// CLI entry point
-if (require.main === module) {
-  const cli = new NoWingCLI();
-  cli.run(process.argv).catch(error => {
-    console.error('❌ CLI error:', error.message);
-    process.exit(1);
-  });
-}
-
-export { NoWingCLI };

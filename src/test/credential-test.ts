@@ -1,9 +1,9 @@
 #!/usr/bin/env ts-node
 
 import process from "node:process";
-import { CredentialManager } from '../credentials/CredentialManager';
-import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { ConfigManager } from '../config/ConfigManager';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
+import { ConfigManager } from '../config/ConfigManager.ts';
 
 async function testCredentialSeparation() {
   console.log('🧪 Testing Q Credential Separation Feature\n');

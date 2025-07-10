@@ -1,12 +1,12 @@
 #!/usr/bin/env ts-node
 
 import process from "node:process";
-import { CredentialManager } from '../credentials/CredentialManager';
-import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { ConfigManager } from '../config/ConfigManager';
-import { RoleManager, OperationContext } from '../permissions/RoleManager';
-import { PermissionElevator } from '../permissions/PermissionElevator';
-import { AuditLogger } from '../audit/AuditLogger';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
+import { ConfigManager } from '../config/ConfigManager.ts';
+import { RoleManager, OperationContext } from '../permissions/RoleManager.ts';
+import { PermissionElevator } from '../permissions/PermissionElevator.ts';
+import { AuditLogger } from '../audit/AuditLogger.ts';
 
 async function testPermissionManagement() {
   console.log('🧪 Testing Q Permission Management Features\n');

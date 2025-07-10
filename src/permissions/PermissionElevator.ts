@@ -1,6 +1,6 @@
-import { CredentialManager } from '../credentials/CredentialManager';
-import { RoleManager, OperationContext } from './RoleManager';
-import { ConfigManager } from '../config/ConfigManager';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { RoleManager, OperationContext } from './RoleManager.ts';
+import { ConfigManager } from '../config/ConfigManager.ts';
 
 export interface PermissionRequest {
   id: string;

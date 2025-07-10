@@ -1,6 +1,6 @@
 import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { IAMClient, ListRolesCommand, GetRoleCommand } from '@aws-sdk/client-iam';
-import { CredentialManager } from '../credentials/CredentialManager';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
 
 export interface RoleInfo {
   roleName: string;

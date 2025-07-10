@@ -1,8 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { CloudWatchLogsClient, PutLogEventsCommand, CreateLogStreamCommand as _CreateLogStreamCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { CloudTrailClient, LookupEventsCommand } from '@aws-sdk/client-cloudtrail';
-import { CredentialManager } from '../credentials/CredentialManager';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
 
 export interface AuditEvent {
   id: string;
@@ -417,8 +418,8 @@ export class AuditLogger {
   }
 
   private ensureLogDirectory(): void {
-    const logDir = path.dirname(this.logFilePath);
-    if (!fs.existsSync(logDir)) {
+    const logDir = dirname(this.logFilePath);
+    if (!existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
   }
@@ -462,11 +463,11 @@ export class AuditLogger {
   }
 
   private readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
-    if (!fs.existsSync(this.logFilePath)) {
+    if (!existsSync(this.logFilePath)) {
       return [];
     }
 
-    const logContent = fs.readFileSync(this.logFilePath, 'utf8');
+    const logContent = await readTextFile(this.logFilePath);
     const lines = logContent.split('\n').filter(line => line.trim());
     
     const events: AuditEvent[] = [];

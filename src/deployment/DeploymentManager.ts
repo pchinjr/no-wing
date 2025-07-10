@@ -1,12 +1,13 @@
 import { CloudFormationClient as _CloudFormationClient, CreateStackCommand, UpdateStackCommand, DescribeStacksCommand, DeleteStackCommand } from '@aws-sdk/client-cloudformation';
 import { S3Client as _S3Client, PutObjectCommand, GetObjectCommand as _GetObjectCommand } from '@aws-sdk/client-s3';
-import { CredentialManager } from '../credentials/CredentialManager';
-import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { PermissionElevator, ElevationResult as _ElevationResult } from '../permissions/PermissionElevator';
-import { AuditLogger } from '../audit/AuditLogger';
-import { RoleManager, OperationContext } from '../permissions/RoleManager';
-import * as fs from 'fs';
-import * as _path from 'path';
+import { CredentialManager } from '../credentials/CredentialManager.ts';
+import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
+import { PermissionElevator, ElevationResult as _ElevationResult } from '../permissions/PermissionElevator.ts';
+import { AuditLogger } from '../audit/AuditLogger.ts';
+import { RoleManager, OperationContext } from '../permissions/RoleManager.ts';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
 
 export interface DeploymentConfig {
   stackName: string;
@@ -244,14 +245,14 @@ export class DeploymentManager {
       await this.credentialManager.switchToUserContext();
       
       // Validate template file exists
-      if (this.isLocalFile(config.templatePath) && !fs.existsSync(config.templatePath)) {
+      if (this.isLocalFile(config.templatePath) && !existsSync(config.templatePath)) {
         result.errors.push(`Template file not found: ${config.templatePath}`);
         result.isValid = false;
       }
 
       // Validate template syntax
       if (this.isLocalFile(config.templatePath)) {
-        const templateContent = fs.readFileSync(config.templatePath, 'utf8');
+        const templateContent = await readTextFile(config.templatePath);
         try {
           const template = JSON.parse(templateContent);
           if (!template.AWSTemplateFormatVersion && !template.Resources) {
@@ -318,7 +319,7 @@ export class DeploymentManager {
     }
 
     const s3Client = await this.clientFactory.getS3Client({ region: config.region });
-    const templateContent = fs.readFileSync(config.templatePath, 'utf8');
+    const templateContent = await readTextFile(config.templatePath);
     const key = `${config.s3KeyPrefix || 'templates'}/${config.stackName}-${Date.now()}.json`;
 
     const putCommand = new PutObjectCommand({
@@ -357,7 +358,7 @@ export class DeploymentManager {
     const createCommand = new CreateStackCommand({
       StackName: config.stackName,
       TemplateURL: this.isLocalFile(templateUrl) ? undefined : templateUrl,
-      TemplateBody: this.isLocalFile(templateUrl) ? fs.readFileSync(templateUrl, 'utf8') : undefined,
+      TemplateBody: this.isLocalFile(templateUrl) ? await readTextFile(templateUrl) : undefined,
       Parameters: config.parameters ? Object.entries(config.parameters).map(([key, value]) => ({
         ParameterKey: key,
         ParameterValue: value
@@ -392,7 +393,7 @@ export class DeploymentManager {
     const updateCommand = new UpdateStackCommand({
       StackName: config.stackName,
       TemplateURL: this.isLocalFile(templateUrl) ? undefined : templateUrl,
-      TemplateBody: this.isLocalFile(templateUrl) ? fs.readFileSync(templateUrl, 'utf8') : undefined,
+      TemplateBody: this.isLocalFile(templateUrl) ? await readTextFile(templateUrl) : undefined,
       Parameters: config.parameters ? Object.entries(config.parameters).map(([key, value]) => ({
         ParameterKey: key,
         ParameterValue: value

@@ -3,7 +3,7 @@ import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { STSClient } from '@aws-sdk/client-sts';
-import { CredentialManager } from './CredentialManager';
+import { CredentialManager } from './CredentialManager.ts';
 
 export type AWSServiceType = 's3' | 'cloudformation' | 'lambda' | 'iam' | 'sts';
 
