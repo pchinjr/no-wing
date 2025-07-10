@@ -2,67 +2,124 @@
 
 ## Prerequisites
 
-- [Deno](https://deno.land/) runtime installed
+- [Deno](https://deno.land/) runtime installed (v1.40+)
 - AWS CLI configured with appropriate credentials
 - Git (for installation from source)
 
 ## Installation
 
-### Option 1: Direct Execution (Recommended for Development)
+### Option 1: Automated Installation (Recommended)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd no-wing
 
-# Make executable
-chmod +x no-wing
+# Install for current user
+./install.sh
+
+# OR install system-wide (requires sudo)
+./install.sh --system
+```
+
+### Option 2: Manual Installation
+
+#### User Installation
+```bash
+# Clone and setup
+git clone <repository-url>
+cd no-wing
+
+# Create installation directory
+mkdir -p ~/.local/share/no-wing
+mkdir -p ~/.local/bin
+
+# Copy files
+cp -r src/ ~/.local/share/no-wing/
+cp no-wing ~/.local/share/no-wing/
+cp main.ts ~/.local/share/no-wing/
+
+# Create wrapper script
+cat > ~/.local/bin/no-wing << 'EOF'
+#!/bin/bash
+cd "$HOME/.local/share/no-wing" && ./no-wing "$@"
+EOF
+
+chmod +x ~/.local/bin/no-wing
+
+# Add to PATH if needed
+echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### System Installation
+```bash
+# Clone and setup
+git clone <repository-url>
+cd no-wing
+
+# Create installation directory (requires sudo)
+sudo mkdir -p /opt/no-wing
+
+# Copy files
+sudo cp -r src/ /opt/no-wing/
+sudo cp no-wing /opt/no-wing/
+sudo cp main.ts /opt/no-wing/
+sudo chmod +x /opt/no-wing/no-wing
+
+# Create system wrapper
+sudo tee /usr/local/bin/no-wing << 'EOF'
+#!/bin/bash
+cd "/opt/no-wing" && ./no-wing "$@"
+EOF
+
+sudo chmod +x /usr/local/bin/no-wing
+```
+
+### Option 3: Direct Execution (Development)
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd no-wing
 
 # Run directly
 ./no-wing help
 ```
 
-### Option 2: Install to PATH
+## Verification
+
+Test your installation:
 
 ```bash
-# Clone and setup
-git clone <repository-url>
-cd no-wing
-chmod +x no-wing
+# Check if command is available
+which no-wing
 
-# Copy to a directory in your PATH
-sudo cp no-wing /usr/local/bin/
-# or
-cp no-wing ~/.local/bin/  # if ~/.local/bin is in your PATH
-```
-
-### Option 3: Deno Install (Future)
-
-```bash
-# This will be available once published
-deno install --allow-all --name no-wing https://deno.land/x/no-wing/no-wing
+# Test basic functionality
+no-wing help
+no-wing status
 ```
 
 ## Quick Start
 
 1. **Setup credentials:**
    ```bash
-   ./no-wing setup --profile my-aws-profile --region us-east-1
+   no-wing setup --profile my-aws-profile --region us-east-1
    ```
 
 2. **Check status:**
    ```bash
-   ./no-wing status
+   no-wing status
    ```
 
 3. **Test credentials:**
    ```bash
-   ./no-wing credentials test
+   no-wing credentials test
    ```
 
 4. **Deploy a CloudFormation stack:**
    ```bash
-   ./no-wing deploy my-template.yaml --stack-name my-stack
+   no-wing deploy my-template.yaml --stack-name my-stack
    ```
 
 ## Command Overview
@@ -110,16 +167,28 @@ deno install --allow-all --name no-wing https://deno.land/x/no-wing/no-wing
 
 ### Common Issues
 
-1. **Configuration not found:**
+1. **Command not found:**
    ```bash
-   ./no-wing setup --profile default --region us-east-1
+   # Check if installed
+   which no-wing
+   
+   # Check PATH (for user installation)
+   echo $PATH | grep -o "$HOME/.local/bin"
+   
+   # Add to PATH if missing
+   export PATH="$PATH:$HOME/.local/bin"
    ```
 
-2. **Permission denied:**
+2. **Configuration not found:**
+   ```bash
+   no-wing setup --profile default --region us-east-1
+   ```
+
+3. **Permission denied:**
    - Ensure AWS credentials are configured
    - Check IAM policies and role trust relationships
 
-3. **Deno permission errors:**
+4. **Deno permission errors:**
    - The script requires `--allow-all` for file system and network access
    - This is necessary for AWS SDK operations and configuration management
 
@@ -127,7 +196,35 @@ deno install --allow-all --name no-wing https://deno.land/x/no-wing/no-wing
 
 Enable verbose logging:
 ```bash
-DENO_LOG=debug ./no-wing <command>
+DENO_LOG=debug no-wing <command>
+```
+
+### Reinstallation
+
+If you need to reinstall:
+
+```bash
+# Remove existing installation
+rm -rf ~/.local/share/no-wing ~/.local/bin/no-wing
+# OR for system installation
+sudo rm -rf /opt/no-wing /usr/local/bin/no-wing
+
+# Then reinstall
+./install.sh
+```
+
+## Uninstallation
+
+### User Installation
+```bash
+rm -rf ~/.local/share/no-wing
+rm ~/.local/bin/no-wing
+```
+
+### System Installation
+```bash
+sudo rm -rf /opt/no-wing
+sudo rm /usr/local/bin/no-wing
 ```
 
 ## Security Considerations
@@ -141,16 +238,19 @@ DENO_LOG=debug ./no-wing <command>
 
 ### Running Tests
 ```bash
+cd /path/to/no-wing/source
 ./no-wing test  # Run integration tests
 deno test       # Run unit tests (when available)
 ```
 
 ### Linting
 ```bash
+cd /path/to/no-wing/source
 deno lint
 ```
 
 ### Formatting
 ```bash
+cd /path/to/no-wing/source
 deno fmt
 ```
