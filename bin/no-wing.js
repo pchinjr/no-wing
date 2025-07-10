@@ -5,9 +5,7 @@
  * Q Credential Separation System
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+// Node.js imports removed - not needed for basic CLI demo
 
 // Basic CLI functionality for demonstration
 function showHelp() {
@@ -70,7 +68,8 @@ Next Steps:
 }
 
 function main() {
-  const args = process.argv.slice(2);
+  // Use Deno.args if available, fallback to process.argv for Node.js
+  const args = typeof Deno !== 'undefined' ? Deno.args : (typeof process !== 'undefined' ? process.argv.slice(2) : []);
   const command = args[0];
 
   switch (command) {
@@ -118,11 +117,17 @@ function main() {
     default:
       console.log(`❌ Unknown command: ${command}`);
       console.log('Run "no-wing help" for available commands');
-      process.exit(1);
+      // Use Deno.exit if available, fallback to process.exit for Node.js
+      if (typeof Deno !== 'undefined') {
+        Deno.exit(1);
+      } else if (typeof process !== 'undefined') {
+        process.exit(1);
+      }
   }
 }
 
-if (require.main === module) {
+// Run main if this is the entry point (works for both Node.js and Deno)
+if (typeof require !== 'undefined' && require.main === module) {
   main();
 }
 

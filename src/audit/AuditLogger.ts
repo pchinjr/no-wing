@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { CloudWatchLogsClient, PutLogEventsCommand, CreateLogStreamCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { CloudWatchLogsClient, PutLogEventsCommand, CreateLogStreamCommand as _CreateLogStreamCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { CloudTrailClient, LookupEventsCommand } from '@aws-sdk/client-cloudtrail';
 import { CredentialManager } from '../credentials/CredentialManager';
 
@@ -17,12 +17,12 @@ export interface AuditEvent {
     service: string;
     action: string;
     resources?: string[];
-    parameters?: Record<string, any>;
+    parameters?: Record<string, unknown>;
   };
   result: {
     success: boolean;
     errorMessage?: string;
-    responseData?: any;
+    responseData?: unknown;
   };
   context: {
     sourceIp?: string;
@@ -209,10 +209,10 @@ export class AuditLogger {
     service: string,
     action: string,
     resources: string[],
-    parameters: Record<string, any>,
+    parameters: Record<string, unknown>,
     success: boolean,
     error?: string,
-    responseData?: any
+    responseData?: unknown
   ): Promise<void> {
     const currentContext = this.credentialManager.getCurrentContext();
     
@@ -423,7 +423,7 @@ export class AuditLogger {
     }
   }
 
-  private async writeToLocalLog(events: AuditEvent | AuditEvent[]): Promise<void> {
+  private writeToLocalLog(events: AuditEvent | AuditEvent[]): Promise<void> {
     const eventsArray = Array.isArray(events) ? events : [events];
     
     const logEntries = eventsArray.map(event => 
@@ -461,7 +461,7 @@ export class AuditLogger {
     }
   }
 
-  private async readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
+  private readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
     if (!fs.existsSync(this.logFilePath)) {
       return [];
     }
@@ -487,7 +487,7 @@ export class AuditLogger {
     return events.slice(0, query.limit || 1000);
   }
 
-  private async queryCloudWatchEvents(query: AuditQuery): Promise<AuditEvent[]> {
+  private queryCloudWatchEvents(_query: AuditQuery): Promise<AuditEvent[]> {
     // CloudWatch Logs query implementation would go here
     // For now, return empty array
     return [];
@@ -558,7 +558,7 @@ export class AuditLogger {
     return violations;
   }
 
-  private sanitizeParameters(params: Record<string, any>): Record<string, any> {
+  private sanitizeParameters(params: Record<string, unknown>): Record<string, unknown> {
     const sanitized = { ...params };
     
     // Remove sensitive data
@@ -572,7 +572,7 @@ export class AuditLogger {
     return sanitized;
   }
 
-  private sanitizeResponseData(data: any): any {
+  private sanitizeResponseData(data: unknown): unknown {
     if (!data) return data;
     
     // Basic sanitization - in production, this would be more sophisticated

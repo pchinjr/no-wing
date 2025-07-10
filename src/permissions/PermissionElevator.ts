@@ -20,7 +20,7 @@ export interface ElevationResult {
   success: boolean;
   method: 'direct' | 'role-assumption' | 'permission-request' | 'degraded';
   message: string;
-  sessionInfo?: any;
+  sessionInfo?: unknown;
   alternatives?: string[];
   requestId?: string;
 }
@@ -159,7 +159,7 @@ export class PermissionElevator {
   /**
    * Check if current credentials have direct permissions
    */
-  private async checkDirectPermissions(context: OperationContext): Promise<ElevationResult> {
+  private checkDirectPermissions(_context: OperationContext): Promise<ElevationResult> {
     try {
       // This is a simplified check - in production, you'd use IAM policy simulation
       const currentContext = this.credentialManager.getCurrentContext();
@@ -260,7 +260,7 @@ export class PermissionElevator {
   /**
    * Try a specific fallback strategy
    */
-  private async tryFallbackStrategy(strategy: string, context: OperationContext): Promise<ElevationResult> {
+  private tryFallbackStrategy(strategy: string, context: OperationContext): Promise<ElevationResult> {
     switch (strategy) {
       case 'read-only-validation':
         return this.tryReadOnlyValidation(context);
@@ -286,7 +286,7 @@ export class PermissionElevator {
   /**
    * Try read-only validation as fallback
    */
-  private async tryReadOnlyValidation(context: OperationContext): Promise<ElevationResult> {
+  private tryReadOnlyValidation(context: OperationContext): Promise<ElevationResult> {
     try {
       // Attempt to validate the operation without making changes
       console.log(`🔍 Attempting read-only validation for ${context.operation}`);
@@ -310,7 +310,7 @@ export class PermissionElevator {
   /**
    * Try dry-run as fallback
    */
-  private async tryDryRun(context: OperationContext): Promise<ElevationResult> {
+  private tryDryRun(context: OperationContext): Promise<ElevationResult> {
     try {
       console.log(`🧪 Attempting dry-run for ${context.operation}`);
       
@@ -348,7 +348,7 @@ export class PermissionElevator {
   /**
    * Try staged deployment
    */
-  private async tryStagedDeployment(context: OperationContext): Promise<ElevationResult> {
+  private tryStagedDeployment(context: OperationContext): Promise<ElevationResult> {
     try {
       console.log(`🎭 Attempting staged deployment for ${context.operation}`);
       
@@ -371,7 +371,7 @@ export class PermissionElevator {
   /**
    * Create a permission request
    */
-  async createPermissionRequest(context: OperationContext): Promise<ElevationResult> {
+  createPermissionRequest(context: OperationContext): Promise<ElevationResult> {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const pattern = this.permissionPatterns.get(context.operation);

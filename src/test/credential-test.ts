@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 
+import process from "node:process";
 import { CredentialManager } from '../credentials/CredentialManager';
 import { AWSClientFactory } from '../credentials/AWSClientFactory';
 import { ConfigManager } from '../config/ConfigManager';
@@ -40,7 +41,7 @@ async function testCredentialSeparation() {
     const clientFactory = new AWSClientFactory(credentialManager);
     
     try {
-      const stsClient = await clientFactory.getSTSClient();
+      const _stsClient = await clientFactory.getSTSClient();
       console.log('✅ STS client created successfully');
       
       const cacheStats = clientFactory.getCacheStats();

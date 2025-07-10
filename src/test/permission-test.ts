@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 
+import process from "node:process";
 import { CredentialManager } from '../credentials/CredentialManager';
 import { AWSClientFactory } from '../credentials/AWSClientFactory';
 import { ConfigManager } from '../config/ConfigManager';
@@ -15,7 +16,7 @@ async function testPermissionManagement() {
     console.log('🔧 Initializing components...');
     const configManager = new ConfigManager('./.no-wing/config.json');
     const credentialManager = new CredentialManager();
-    const clientFactory = new AWSClientFactory(credentialManager);
+    const _clientFactory = new AWSClientFactory(credentialManager);
     const roleManager = new RoleManager(credentialManager);
     const permissionElevator = new PermissionElevator(credentialManager, roleManager, configManager);
     const auditLogger = new AuditLogger(credentialManager, {

@@ -15,7 +15,7 @@ export interface ClientConfig {
 
 export class AWSClientFactory {
   private credentialManager: CredentialManager;
-  private clientCache: Map<string, any> = new Map();
+  private clientCache: Map<string, unknown> = new Map();
   private defaultRegion: string;
 
   constructor(credentialManager: CredentialManager, defaultRegion: string = 'us-east-1') {
@@ -62,7 +62,7 @@ export class AWSClientFactory {
   /**
    * Create a new AWS service client
    */
-  private async createClient(serviceType: AWSServiceType, config: ClientConfig): Promise<any> {
+  private createClient(serviceType: AWSServiceType, config: ClientConfig): unknown {
     const credentials = this.credentialManager.getCurrentCredentials();
     const region = config.region || this.defaultRegion;
     
@@ -97,7 +97,7 @@ export class AWSClientFactory {
   /**
    * Validate that a cached client is still valid
    */
-  private async isClientValid(client: any, serviceType: AWSServiceType): Promise<boolean> {
+  private async isClientValid(client: unknown, serviceType: AWSServiceType): Promise<boolean> {
     try {
       // Simple validation call for each service type
       switch (serviceType) {
@@ -156,9 +156,9 @@ export class AWSClientFactory {
   /**
    * Create a client with specific credentials (bypass credential manager)
    */
-  async createClientWithCredentials<T>(
+  createClientWithCredentials<T>(
     serviceType: AWSServiceType,
-    credentials: any,
+    credentials: AwsCredentialIdentity,
     config: ClientConfig = {}
   ): Promise<T> {
     const region = config.region || this.defaultRegion;
@@ -194,23 +194,23 @@ export class AWSClientFactory {
   /**
    * Helper method to get commonly used clients
    */
-  async getS3Client(config?: ClientConfig): Promise<S3Client> {
+  getS3Client(config?: ClientConfig): Promise<S3Client> {
     return this.getClient<S3Client>('s3', config);
   }
 
-  async getCloudFormationClient(config?: ClientConfig): Promise<CloudFormationClient> {
+  getCloudFormationClient(config?: ClientConfig): Promise<CloudFormationClient> {
     return this.getClient<CloudFormationClient>('cloudformation', config);
   }
 
-  async getLambdaClient(config?: ClientConfig): Promise<LambdaClient> {
+  getLambdaClient(config?: ClientConfig): Promise<LambdaClient> {
     return this.getClient<LambdaClient>('lambda', config);
   }
 
-  async getIAMClient(config?: ClientConfig): Promise<IAMClient> {
+  getIAMClient(config?: ClientConfig): Promise<IAMClient> {
     return this.getClient<IAMClient>('iam', config);
   }
 
-  async getSTSClient(config?: ClientConfig): Promise<STSClient> {
+  getSTSClient(config?: ClientConfig): Promise<STSClient> {
     return this.getClient<STSClient>('sts', config);
   }
 
@@ -254,14 +254,14 @@ export class AWSClientFactory {
   /**
    * Execute a deployment operation with no-wing credentials
    */
-  async executeAsNoWing<T>(operation: () => Promise<T>): Promise<T> {
+  executeAsNoWing<T>(operation: () => Promise<T>): Promise<T> {
     return this.withContext('no-wing', operation);
   }
 
   /**
    * Execute a user operation with user credentials
    */
-  async executeAsUser<T>(operation: () => Promise<T>): Promise<T> {
+  executeAsUser<T>(operation: () => Promise<T>): Promise<T> {
     return this.withContext('user', operation);
   }
 }

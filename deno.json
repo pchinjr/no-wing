@@ -1,0 +1,8 @@
+{
+  "lint": {
+    "exclude": ["bin/", "node_modules/"]
+  },
+  "fmt": {
+    "exclude": ["bin/", "node_modules/"]
+  }
+}

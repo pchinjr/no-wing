@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import process from "node:process";
 import { Command } from 'commander';
 import { CredentialManager } from '../credentials/CredentialManager';
 import { AWSClientFactory } from '../credentials/AWSClientFactory';
@@ -198,15 +199,15 @@ export class NoWingCLI {
   }
 
   // Command handlers
-  private async handleSetup(options: any): Promise<void> {
+  private async handleSetup(options: Record<string, unknown>): Promise<void> {
     console.log('🔧 Setting up no-wing credentials...');
 
     try {
-      const config = this.configManager.getConfig() || 
+      const _config = this.configManager.getConfig() || 
         ConfigManager.createDefaultConfig('dev-' + Date.now(), options.region);
 
       // Update credentials configuration
-      const credentials: any = {
+      const credentials: Record<string, unknown> = {
         region: options.region
       };
 
@@ -237,7 +238,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleStatus(options: any): Promise<void> {
+  private async handleStatus(options: Record<string, unknown>): Promise<void> {
     console.log('📊 No-wing Status\n');
 
     try {
@@ -280,7 +281,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleDeploy(template: string, options: any): Promise<void> {
+  private async handleDeploy(template: string, options: Record<string, unknown>): Promise<void> {
     console.log(`🚀 Deploying CloudFormation stack...`);
 
     try {
@@ -356,7 +357,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleRollback(stackName: string, options: any): Promise<void> {
+  private async handleRollback(stackName: string, options: Record<string, unknown>): Promise<void> {
     console.log(`🔄 Rolling back stack: ${stackName}`);
 
     try {
@@ -431,7 +432,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleListRoles(options: any): Promise<void> {
+  private async handleListRoles(options: Record<string, unknown>): Promise<void> {
     console.log('🎭 Available Roles:');
 
     try {
@@ -476,7 +477,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handlePermissionRequests(options: any): Promise<void> {
+  private handlePermissionRequests(_options: Record<string, unknown>): Promise<void> {
     console.log('🔐 Permission Requests:');
 
     try {
@@ -492,11 +493,11 @@ export class NoWingCLI {
     }
   }
 
-  private async handleAuditEvents(options: any): Promise<void> {
+  private async handleAuditEvents(options: Record<string, unknown>): Promise<void> {
     console.log('📝 Audit Events:');
 
     try {
-      const query: any = {
+      const query: Record<string, unknown> = {
         limit: parseInt(options.limit)
       };
 
@@ -535,7 +536,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleAuditReport(options: any): Promise<void> {
+  private async handleAuditReport(options: Record<string, unknown>): Promise<void> {
     console.log('📊 Generating compliance report...');
 
     try {
@@ -594,7 +595,7 @@ export class NoWingCLI {
     }
   }
 
-  private async handleConfigShow(): Promise<void> {
+  private handleConfigShow(): Promise<void> {
     try {
       const config = this.configManager.getConfig();
       

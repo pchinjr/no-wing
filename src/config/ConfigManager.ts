@@ -38,7 +38,7 @@ export interface PolicyStatement {
   Effect: 'Allow' | 'Deny';
   Action: string | string[];
   Resource: string | string[];
-  Condition?: Record<string, any>;
+  Condition?: Record<string, unknown>;
 }
 
 export interface ValidationResult {
@@ -59,7 +59,7 @@ export class ConfigManager {
   /**
    * Load configuration from file
    */
-  async loadConfig(): Promise<NoWingConfig> {
+  loadConfig(): Promise<NoWingConfig> {
     try {
       if (!fs.existsSync(this.configPath)) {
         throw new Error(`Configuration file not found: ${this.configPath}`);
@@ -83,7 +83,7 @@ export class ConfigManager {
   /**
    * Save configuration to file
    */
-  async saveConfig(config: NoWingConfig): Promise<void> {
+  saveConfig(config: NoWingConfig): Promise<void> {
     try {
       // Ensure directory exists
       const configDir = path.dirname(this.configPath);
@@ -237,7 +237,7 @@ export class ConfigManager {
   /**
    * Validate role permissions
    */
-  private async validateRolePermissions(result: ValidationResult, roleArn: string): Promise<void> {
+  private validateRolePermissions(result: ValidationResult, roleArn: string): Promise<void> {
     // For roles, we mainly validate that they exist and are assumable
     result.recommendations.push(
       'Using role-based access - ensure the role has appropriate policies attached'
@@ -251,9 +251,9 @@ export class ConfigManager {
   /**
    * Check for overly permissive policies
    */
-  private async checkForOverlyPermissivePolicies(result: ValidationResult): Promise<void> {
+  private checkForOverlyPermissivePolicies(result: ValidationResult): Promise<void> {
     // This is a simplified check - in production, you'd want more sophisticated policy analysis
-    const dangerousPatterns = [
+    const _dangerousPatterns = [
       { pattern: '"Action": "*"', message: 'Wildcard actions detected' },
       { pattern: '"Resource": "*"', message: 'Wildcard resources detected' },
       { pattern: '"Effect": "Allow".*"Action": "*".*"Resource": "*"', message: 'Full admin access detected' }

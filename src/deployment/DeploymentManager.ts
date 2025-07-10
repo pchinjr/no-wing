@@ -1,12 +1,12 @@
-import { CloudFormationClient, CreateStackCommand, UpdateStackCommand, DescribeStacksCommand, DeleteStackCommand } from '@aws-sdk/client-cloudformation';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { CloudFormationClient as _CloudFormationClient, CreateStackCommand, UpdateStackCommand, DescribeStacksCommand, DeleteStackCommand } from '@aws-sdk/client-cloudformation';
+import { S3Client as _S3Client, PutObjectCommand, GetObjectCommand as _GetObjectCommand } from '@aws-sdk/client-s3';
 import { CredentialManager } from '../credentials/CredentialManager';
 import { AWSClientFactory } from '../credentials/AWSClientFactory';
-import { PermissionElevator, ElevationResult } from '../permissions/PermissionElevator';
+import { PermissionElevator, ElevationResult as _ElevationResult } from '../permissions/PermissionElevator';
 import { AuditLogger } from '../audit/AuditLogger';
 import { RoleManager, OperationContext } from '../permissions/RoleManager';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as _path from 'path';
 
 export interface DeploymentConfig {
   stackName: string;
@@ -126,7 +126,7 @@ export class DeploymentManager {
 
       result.duration = Date.now() - startTime;
       result.auditTrail = auditTrail;
-      result.method = elevationResult.method as any;
+      result.method = elevationResult.method as string;
 
       // Log final deployment result
       await this.auditLogger.logAWSOperation(
@@ -257,7 +257,7 @@ export class DeploymentManager {
           if (!template.AWSTemplateFormatVersion && !template.Resources) {
             result.warnings.push('Template may not be a valid CloudFormation template');
           }
-        } catch (error) {
+        } catch (_error) {
           // Try YAML parsing if JSON fails
           result.warnings.push('Template format validation skipped (requires YAML parser)');
         }
@@ -277,7 +277,7 @@ export class DeploymentManager {
       // Validate S3 bucket access if specified
       if (config.s3Bucket) {
         try {
-          const s3Client = await this.clientFactory.getS3Client({ region: config.region });
+          const _s3Client = await this.clientFactory.getS3Client({ region: config.region });
           // This would fail if bucket doesn't exist or no access
           // await s3Client.send(new HeadBucketCommand({ Bucket: config.s3Bucket }));
           result.recommendations.push('Verify S3 bucket access for template upload');
@@ -445,7 +445,7 @@ export class DeploymentManager {
     };
   }
 
-  private async cancelStackUpdate(stackName: string, region?: string, auditTrail: string[] = []): Promise<DeploymentResult> {
+  private cancelStackUpdate(stackName: string, _region?: string, auditTrail: string[] = []): Promise<DeploymentResult> {
     // CloudFormation doesn't have a direct cancel update command
     // This would require custom implementation based on stack state
     auditTrail.push(`Stack update cancellation not directly supported: ${stackName}`);
@@ -502,7 +502,7 @@ export class DeploymentManager {
   }
 
   private handleDeploymentFailure(
-    config: DeploymentConfig,
+    _config: DeploymentConfig,
     error: string,
     startTime: number,
     auditTrail: string[],
@@ -514,7 +514,7 @@ export class DeploymentManager {
       success: false,
       error,
       duration: Date.now() - startTime,
-      method: method as any,
+      method: method as string,
       auditTrail
     };
   }
@@ -523,7 +523,7 @@ export class DeploymentManager {
     return !path.startsWith('http://') && !path.startsWith('https://');
   }
 
-  private extractRequiredParameters(templatePath: string): string[] {
+  private extractRequiredParameters(_templatePath: string): string[] {
     // This would parse the CloudFormation template and extract required parameters
     // For now, return empty array
     return [];

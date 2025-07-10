@@ -25,8 +25,8 @@ export interface NoWingCredentialConfig {
 
 export class CredentialManager {
   private currentContext: CredentialContext | null = null;
-  private userCredentials: any = null;
-  private noWingCredentials: any = null;
+  private userCredentials: AwsCredentialIdentity | null = null;
+  private noWingCredentials: AwsCredentialIdentity | null = null;
   private stsClient: STSClient;
   private configPath: string;
 
@@ -72,7 +72,7 @@ export class CredentialManager {
       
       await tempSTS.send(new GetCallerIdentityCommand({}));
       console.log('✅ User credentials loaded from environment');
-    } catch (envError) {
+    } catch (_envError) {
       try {
         // Fall back to AWS config file
         this.userCredentials = fromIni();
@@ -252,7 +252,7 @@ export class CredentialManager {
   /**
    * Get credentials for use with other AWS SDK clients
    */
-  getCurrentCredentials(): any {
+  getCurrentCredentials(): AwsCredentialIdentity | null {
     if (this.currentContext?.type === 'user') {
       return this.userCredentials;
     } else {

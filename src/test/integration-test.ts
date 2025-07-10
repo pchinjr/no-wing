@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 
+import process from "node:process";
 import { CredentialManager } from '../credentials/CredentialManager';
 import { AWSClientFactory } from '../credentials/AWSClientFactory';
 import { ConfigManager } from '../config/ConfigManager';
@@ -9,14 +10,14 @@ import { AuditLogger } from '../audit/AuditLogger';
 import { DeploymentManager } from '../deployment/DeploymentManager';
 import { NoWingCLI } from '../cli/NoWingCLI';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as _path from 'path';
 
 interface TestResult {
   name: string;
   success: boolean;
   duration: number;
   error?: string;
-  details?: any;
+  details?: unknown;
 }
 
 interface TestSuite {
@@ -164,8 +165,8 @@ export class IntegrationTestRunner {
 
     // Test 3: AWS Client Factory
     suite.tests.push(await this.runTest('AWS Client Factory', async () => {
-      const stsClient = await this.clientFactory.getSTSClient();
-      const s3Client = await this.clientFactory.getS3Client();
+      const _stsClient = await this.clientFactory.getSTSClient();
+      const _s3Client = await this.clientFactory.getS3Client();
       const cacheStats = this.clientFactory.getCacheStats();
       return { clientsCreated: cacheStats.size, cacheKeys: cacheStats.keys };
     }));
@@ -224,7 +225,7 @@ export class IntegrationTestRunner {
     }));
 
     // Test 4: Permission Request Management
-    suite.tests.push(await this.runTest('Permission Request Management', async () => {
+    suite.tests.push(await this.runTest('Permission Request Management', () => {
       const stats = this.permissionElevator.getRequestStatistics();
       return { 
         totalRequests: stats.total,
@@ -234,7 +235,7 @@ export class IntegrationTestRunner {
     }));
 
     // Test 5: Session Management
-    suite.tests.push(await this.runTest('Session Management', async () => {
+    suite.tests.push(await this.runTest('Session Management', () => {
       const activeSessions = this.roleManager.getActiveSessions();
       this.roleManager.cleanupExpiredSessions();
       const afterCleanup = this.roleManager.getActiveSessions();
@@ -276,7 +277,7 @@ export class IntegrationTestRunner {
     }));
 
     // Test 2: Template Processing
-    suite.tests.push(await this.runTest('Template Processing', async () => {
+    suite.tests.push(await this.runTest('Template Processing', () => {
       const templatePath = './.no-wing/test-template.json';
       const templateExists = fs.existsSync(templatePath);
       const templateContent = templateExists ? JSON.parse(fs.readFileSync(templatePath, 'utf8')) : null;
@@ -393,7 +394,7 @@ export class IntegrationTestRunner {
     }));
 
     // Test 2: Command Structure
-    suite.tests.push(await this.runTest('Command Structure', async () => {
+    suite.tests.push(await this.runTest('Command Structure', () => {
       // Test that CLI has expected commands
       const expectedCommands = ['setup', 'status', 'deploy', 'rollback', 'credentials', 'permissions', 'audit', 'config'];
       return { expectedCommands: expectedCommands.length };
@@ -503,7 +504,7 @@ export class IntegrationTestRunner {
         service: 'cloudformation',
         resources: [`arn:aws:cloudformation:us-east-1:*:stack/${config.stackName}/*`]
       };
-      const elevation = await this.permissionElevator.elevatePermissions(context);
+      const _elevation = await this.permissionElevator.elevatePermissions(context);
       steps.push('permission-elevation');
       
       // Step 4: Generate audit report
@@ -529,7 +530,7 @@ export class IntegrationTestRunner {
       try {
         // Test invalid context switch
         await this.credentialManager.switchToNoWingContext();
-      } catch (error) {
+      } catch (_error) {
         errors.push('context-switch-error');
       }
       
@@ -541,7 +542,7 @@ export class IntegrationTestRunner {
           region: 'invalid-region'
         };
         await this.deploymentManager.validateDeployment(invalidConfig);
-      } catch (error) {
+      } catch (_error) {
         errors.push('validation-error');
       }
       
@@ -555,7 +556,7 @@ export class IntegrationTestRunner {
     this.testResults.push(this.calculateSuiteResults(suite));
   }
 
-  private async runTest(name: string, testFunction: () => Promise<any>): Promise<TestResult> {
+  private async runTest(name: string, testFunction: () => Promise<unknown>): Promise<TestResult> {
     const startTime = Date.now();
     
     try {
