@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node bin/no-wing.js",
+    "prebuild": "rm -rf dist",
     "build": "tsc --noEmit false || echo 'TypeScript compilation has issues - using fallback CLI'",
     "build:watch": "tsc --watch --noEmit false || echo 'TypeScript watch mode'",
     "test": "echo 'Tests implemented in src/test/ - run after TypeScript compilation'",
