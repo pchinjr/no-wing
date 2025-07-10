@@ -1,6 +1,5 @@
 #!/usr/bin/env ts-node
 
-import process from "node:process";
 import { CredentialManager } from '../credentials/CredentialManager.ts';
 import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
 import { ConfigManager } from '../config/ConfigManager.ts';
@@ -9,9 +8,8 @@ import { PermissionElevator } from '../permissions/PermissionElevator.ts';
 import { AuditLogger } from '../audit/AuditLogger.ts';
 import { DeploymentManager } from '../deployment/DeploymentManager.ts';
 import { NoWingCLI } from '../cli/NoWingCLI.ts';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync, } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { existsSync, } from "https://deno.land/std@0.208.0/fs/mod.ts";
 
 interface TestResult {
   name: string;
@@ -85,11 +83,11 @@ export class IntegrationTestRunner {
       await this.runEndToEndTests();
 
       // Generate test report
-      this.generateTestReport();
+      await this.generateTestReport();
 
     } catch (error) {
       console.error('❌ Test suite failed:', error.message);
-      process.exit(1);
+      Deno.exit(1);
     } finally {
       await this.cleanupTestEnvironment();
     }
@@ -127,7 +125,7 @@ export class IntegrationTestRunner {
       }
     };
 
-    await writeTextFile('./.no-wing/test-template.json', JSON.stringify(testTemplate, null, 2));
+    await Deno.writeTextFile('./.no-wing/test-template.json', JSON.stringify(testTemplate, null, 2));
     console.log('✅ Test environment setup complete');
   }
 
@@ -278,10 +276,10 @@ export class IntegrationTestRunner {
     }));
 
     // Test 2: Template Processing
-    suite.tests.push(await this.runTest('Template Processing', () => {
+    suite.tests.push(await this.runTest('Template Processing', async () => {
       const templatePath = './.no-wing/test-template.json';
       const templateExists = existsSync(templatePath);
-      const templateContent = templateExists ? JSON.parse(await readTextFile(templatePath)) : null;
+      const templateContent = templateExists ? JSON.parse(await Deno.readTextFile(templatePath)) : null;
       return {
         templateExists,
         hasResources: !!templateContent?.Resources,
@@ -595,7 +593,7 @@ export class IntegrationTestRunner {
     return suite;
   }
 
-  private generateTestReport(): void {
+  private async generateTestReport(): Promise<void> {
     console.log('\n📋 Test Report Summary\n');
     
     const totalTests = this.testResults.reduce((sum, suite) => sum + suite.totalTests, 0);
@@ -640,12 +638,12 @@ export class IntegrationTestRunner {
       suites: this.testResults
     };
     
-    await writeTextFile('./.no-wing/test-report.json', JSON.stringify(report, null, 2));
+    await Deno.writeTextFile('./.no-wing/test-report.json', JSON.stringify(report, null, 2));
     console.log(`\n📄 Detailed report saved to: ./.no-wing/test-report.json`);
     
     if (totalFailed > 0) {
       console.log(`\n❌ ${totalFailed} tests failed. Review the report for details.`);
-      process.exit(1);
+      Deno.exit(1);
     } else {
       console.log(`\n🎉 All tests passed! No-wing credential separation is working correctly.`);
     }
@@ -664,7 +662,7 @@ export class IntegrationTestRunner {
       
       for (const file of testFiles) {
         if (existsSync(file)) {
-          fs.unlinkSync(file);
+          Deno.removeSync(file);
         }
       }
       
@@ -683,7 +681,7 @@ if (require.main === module) {
   const testRunner = new IntegrationTestRunner();
   testRunner.runAllTests().catch(error => {
     console.error('❌ Test runner failed:', error.message);
-    process.exit(1);
+    Deno.exit(1);
   });
 }
 

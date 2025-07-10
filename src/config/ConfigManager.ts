@@ -1,6 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync, } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { dirname, resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { IAMClient, GetUserCommand, ListAttachedUserPoliciesCommand } from '@aws-sdk/client-iam';
 
@@ -66,7 +65,7 @@ export class ConfigManager {
         throw new Error(`Configuration file not found: ${this.configPath}`);
       }
 
-      const configData = await readTextFile(this.configPath);
+      const configData = await Deno.readTextFile(this.configPath);
       this.config = JSON.parse(configData);
 
       // Validate basic structure
@@ -89,11 +88,11 @@ export class ConfigManager {
       // Ensure directory exists
       const configDir = dirname(this.configPath);
       if (!existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
+        Deno.mkdirSync(configDir, { recursive: true });
       }
 
       // Write configuration
-      await writeTextFile(this.configPath, JSON.stringify(config, null, 2));
+      await Deno.writeTextFile(this.configPath, JSON.stringify(config, null, 2));
       this.config = config;
 
       console.log('✅ Configuration saved successfully');

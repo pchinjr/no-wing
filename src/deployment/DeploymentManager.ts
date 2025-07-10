@@ -5,9 +5,8 @@ import { AWSClientFactory } from '../credentials/AWSClientFactory.ts';
 import { PermissionElevator, ElevationResult as _ElevationResult } from '../permissions/PermissionElevator.ts';
 import { AuditLogger } from '../audit/AuditLogger.ts';
 import { RoleManager, OperationContext } from '../permissions/RoleManager.ts';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+
 
 export interface DeploymentConfig {
   stackName: string;
@@ -252,7 +251,7 @@ export class DeploymentManager {
 
       // Validate template syntax
       if (this.isLocalFile(config.templatePath)) {
-        const templateContent = await readTextFile(config.templatePath);
+        const templateContent = await Deno.readTextFile(config.templatePath);
         try {
           const template = JSON.parse(templateContent);
           if (!template.AWSTemplateFormatVersion && !template.Resources) {
@@ -319,7 +318,7 @@ export class DeploymentManager {
     }
 
     const s3Client = await this.clientFactory.getS3Client({ region: config.region });
-    const templateContent = await readTextFile(config.templatePath);
+    const templateContent = await Deno.readTextFile(config.templatePath);
     const key = `${config.s3KeyPrefix || 'templates'}/${config.stackName}-${Date.now()}.json`;
 
     const putCommand = new PutObjectCommand({
@@ -358,7 +357,7 @@ export class DeploymentManager {
     const createCommand = new CreateStackCommand({
       StackName: config.stackName,
       TemplateURL: this.isLocalFile(templateUrl) ? undefined : templateUrl,
-      TemplateBody: this.isLocalFile(templateUrl) ? await readTextFile(templateUrl) : undefined,
+      TemplateBody: this.isLocalFile(templateUrl) ? await Deno.readTextFile(templateUrl) : undefined,
       Parameters: config.parameters ? Object.entries(config.parameters).map(([key, value]) => ({
         ParameterKey: key,
         ParameterValue: value
@@ -393,7 +392,7 @@ export class DeploymentManager {
     const updateCommand = new UpdateStackCommand({
       StackName: config.stackName,
       TemplateURL: this.isLocalFile(templateUrl) ? undefined : templateUrl,
-      TemplateBody: this.isLocalFile(templateUrl) ? await readTextFile(templateUrl) : undefined,
+      TemplateBody: this.isLocalFile(templateUrl) ? await Deno.readTextFile(templateUrl) : undefined,
       Parameters: config.parameters ? Object.entries(config.parameters).map(([key, value]) => ({
         ParameterKey: key,
         ParameterValue: value

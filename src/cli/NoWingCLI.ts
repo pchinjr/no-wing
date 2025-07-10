@@ -9,8 +9,8 @@ import { RoleManager } from '../permissions/RoleManager.ts';
 import { PermissionElevator } from '../permissions/PermissionElevator.ts';
 import { AuditLogger } from '../audit/AuditLogger.ts';
 import { DeploymentManager } from '../deployment/DeploymentManager.ts';
-import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
+
+import { basename, extname } from "https://deno.land/std@0.208.0/path/mod.ts";
 
 export class NoWingCLI {
   private program: Command;
@@ -234,7 +234,7 @@ export class NoWingCLI {
 
     } catch (error) {
       console.error('❌ Setup failed:', error.message);
-      process.exit(1);
+      Deno.exit(1);
     }
   }
 
@@ -287,11 +287,11 @@ export class NoWingCLI {
     try {
       // Parse options
       const config = {
-        stackName: options.stackName || basename(template, path.extname(template)),
+        stackName: options.stackName || basename(template, extname(template)),
         templatePath: template,
         region: options.region,
         s3Bucket: options.s3Bucket,
-        parameters: options.parameters ? JSON.parse(await readTextFile(options.parameters)) : undefined,
+        parameters: options.parameters ? JSON.parse(await Deno.readTextFile(options.parameters)) : undefined,
         tags: options.tags ? this.parseTags(options.tags) : undefined,
         capabilities: options.capabilities ? options.capabilities.split(',') : undefined
       };
@@ -353,7 +353,7 @@ export class NoWingCLI {
 
     } catch (error) {
       console.error('❌ Deployment failed:', error.message);
-      process.exit(1);
+      Deno.exit(1);
     }
   }
 
@@ -380,7 +380,7 @@ export class NoWingCLI {
 
     } catch (error) {
       console.error('❌ Rollback failed:', error.message);
-      process.exit(1);
+      Deno.exit(1);
     }
   }
 

@@ -1,6 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { CloudWatchLogsClient, PutLogEventsCommand, CreateLogStreamCommand as _CreateLogStreamCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { CloudTrailClient, LookupEventsCommand } from '@aws-sdk/client-cloudtrail';
 import { CredentialManager } from '../credentials/CredentialManager.ts';
@@ -420,18 +419,18 @@ export class AuditLogger {
   private ensureLogDirectory(): void {
     const logDir = dirname(this.logFilePath);
     if (!existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+      Deno.mkdirSync(logDir, { recursive: true });
     }
   }
 
-  private writeToLocalLog(events: AuditEvent | AuditEvent[]): Promise<void> {
+  private async writeToLocalLog(events: AuditEvent | AuditEvent[]): Promise<void> {
     const eventsArray = Array.isArray(events) ? events : [events];
     
     const logEntries = eventsArray.map(event => 
       JSON.stringify(event) + '\n'
     ).join('');
 
-    fs.appendFileSync(this.logFilePath, logEntries);
+    await Deno.writeTextFile(this.logFilePath, logEntries, { append: true });
   }
 
   private async writeToCloudWatch(events: AuditEvent[]): Promise<void> {
@@ -462,12 +461,12 @@ export class AuditLogger {
     }
   }
 
-  private readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
+  private async readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
     if (!existsSync(this.logFilePath)) {
       return [];
     }
 
-    const logContent = await readTextFile(this.logFilePath);
+    const logContent = await Deno.readTextFile(this.logFilePath);
     const lines = logContent.split('\n').filter(line => line.trim());
     
     const events: AuditEvent[] = [];

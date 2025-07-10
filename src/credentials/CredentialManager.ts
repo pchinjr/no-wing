@@ -1,8 +1,7 @@
 import { STSClient, GetCallerIdentityCommand, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { fromIni, fromEnv } from '@aws-sdk/credential-providers';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { readTextFile, writeTextFile } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join, dirname, resolve, basename } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 
 export interface CredentialContext {
   type: 'user' | 'no-wing';
@@ -102,7 +101,7 @@ export class CredentialManager {
         throw new Error(`No-wing config file not found: ${configFile}`);
       }
 
-      const config = JSON.parse(await readTextFile(configFile));
+      const config = JSON.parse(await Deno.readTextFile(configFile));
       const credentialConfig: NoWingCredentialConfig = config.credentials || {};
 
       if (credentialConfig.profile) {
