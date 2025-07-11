@@ -2,6 +2,7 @@ import { existsSync, } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import { dirname, resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { IAMClient, GetUserCommand, ListAttachedUserPoliciesCommand } from '@aws-sdk/client-iam';
+import { ContextManager, ProjectContext } from './ContextManager.ts';
 
 export interface NoWingConfig {
   developerId: string;
@@ -51,9 +52,34 @@ export interface ValidationResult {
 export class ConfigManager {
   private configPath: string;
   private config: NoWingConfig | null = null;
+  private contextManager: ContextManager;
+  private context: ProjectContext;
 
-  constructor(configPath: string = './.no-wing/config.json') {
-    this.configPath = resolve(configPath);
+  constructor() {
+    this.contextManager = new ContextManager();
+    this.context = this.contextManager.detectContext();
+    this.configPath = `${this.context.configDirectory}/config.json`;
+  }
+
+  /**
+   * Get current context information
+   */
+  getContext(): ProjectContext {
+    return this.context;
+  }
+
+  /**
+   * Get configuration directory path
+   */
+  getConfigDirectory(): string {
+    return this.context.configDirectory;
+  }
+
+  /**
+   * Check if configuration exists
+   */
+  configExists(): boolean {
+    return existsSync(this.configPath);
   }
 
   /**
@@ -61,8 +87,9 @@ export class ConfigManager {
    */
   async loadConfig(): Promise<NoWingConfig> {
     try {
-      if (!existsSync(this.configPath)) {
-        throw new Error(`Configuration file not found: ${this.configPath}`);
+      if (!this.configExists()) {
+        const contextDesc = this.contextManager.getContextDescription(this.context);
+        throw new Error(`Configuration file not found: ${this.configPath} (${contextDesc})`);
       }
 
       const configData = await Deno.readTextFile(this.configPath);

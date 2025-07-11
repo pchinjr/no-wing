@@ -253,7 +253,18 @@ Examples:
   // === COMMAND HANDLERS ===
 
   private handleSetup(options: { profile?: string; region?: string; roleArn?: string }): void {
+    const context = this.configManager.getContext();
+    
     console.log('🚀 Setting up no-wing...');
+    console.log(`📍 Context: ${context.isProjectSpecific ? 'Project-specific' : 'Global'}`);
+    console.log(`📂 Config location: ${context.configDirectory}`);
+    
+    if (context.isProjectSpecific) {
+      console.log(`🏗️ Creating Q identity for project: ${context.projectPath}`);
+    } else {
+      console.log('🌐 Creating global Q identity');
+    }
+    
     console.log('Options:', options);
     
     try {
@@ -270,7 +281,25 @@ Examples:
     console.log('================');
     
     try {
-      // Implementation would go here
+      const context = this.configManager.getContext();
+      const configExists = this.configManager.configExists();
+      
+      // Show context information
+      console.log(`📍 Context: ${context.isProjectSpecific ? 'Project-specific' : 'Global'}`);
+      console.log(`📂 Config location: ${context.configDirectory}`);
+      
+      if (!configExists) {
+        console.log('');
+        console.log('💡 No configuration found in current context');
+        console.log(`🚀 Run "no-wing setup --profile <aws-profile>" to get started`);
+        if (context.isProjectSpecific) {
+          console.log(`📍 This will create Q identity for project: ${context.projectPath}`);
+        } else {
+          console.log('📍 This will create global Q identity');
+        }
+        return;
+      }
+
       console.log('✅ System operational');
     } catch (error) {
       console.error('❌ Status check failed:', error.message);
