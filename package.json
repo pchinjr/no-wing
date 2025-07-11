@@ -8,15 +8,13 @@
     "no-wing": "./bin/no-wing.js"
   },
   "scripts": {
-    "start": "node bin/no-wing.js",
-    "prebuild": "rm -rf dist",
-    "build": "tsc --noEmit false || echo 'TypeScript compilation has issues - using fallback CLI'",
-    "build:watch": "tsc --watch --noEmit false || echo 'TypeScript watch mode'",
-    "test": "echo 'Tests implemented in src/test/ - run after TypeScript compilation'",
-    "test:credentials": "echo 'Credential tests available in src/test/credential-test.ts'",
-    "test:permissions": "echo 'Permission tests available in src/test/permission-test.ts'",
-    "test:integration": "echo 'Integration tests available in src/test/integration-test.ts'",
-    "clean": "rm -rf dist .no-wing node_modules"
+    "start": "echo 'Use: deno run --allow-all main.ts'",
+    "build": "echo 'Use: deno compile --allow-all --output no-wing main.ts'",
+    "test": "echo 'Use: deno test --allow-all src/test/*_test.ts'",
+    "test:unit": "echo 'Use: deno test --allow-all src/test/context_manager_test.ts'",
+    "test:integration": "echo 'Use: deno test --allow-all src/test/cli_integration_test.ts'",
+    "lint": "echo 'Use: deno lint'",
+    "clean": "rm -rf dist .no-wing node_modules no-wing"
   },
   "keywords": [
     "amazon-q",

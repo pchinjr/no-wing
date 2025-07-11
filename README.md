@@ -191,7 +191,11 @@ deno run --allow-all main.ts status
 ./no-wing status
 
 # Run tests
-deno test --allow-all
+deno test --allow-all src/test/*_test.ts
+
+# Run specific test suites
+deno test --allow-all src/test/context_manager_test.ts      # Unit tests
+deno test --allow-all src/test/cli_integration_test.ts      # Integration tests
 
 # Lint code
 deno lint
