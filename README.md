@@ -79,6 +79,22 @@ no-wing status
 # ✅ Q identity configured for this project
 ```
 
+### Launch Q with Service Account Identity
+
+```bash
+# Launch Q with its own identity (interactive mode)
+no-wing launch
+
+# Launch Q in background mode
+no-wing launch --background
+
+# Launch with detailed information
+no-wing launch --verbose
+
+# Force restart existing Q session
+no-wing launch --force
+```
+
 ### Deploy with Q Identity
 
 ```bash
