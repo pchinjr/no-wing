@@ -1,5 +1,7 @@
 import { existsSync, } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import { dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import { IAMClient, GetUserCommand, ListAttachedUserPoliciesCommand } from '@aws-sdk/client-iam';
 import { ContextManager, ProjectContext } from './ContextManager.ts';
 
 export interface NoWingConfig {
@@ -371,7 +373,7 @@ export class ConfigManager {
   /**
    * Create default configuration
    */
-  static createDefaultConfig(developerId: string, region: string = 'us-east-1'): NoWingConfig {
+  static createDefaultConfig(developerId: string, region = 'us-east-1'): NoWingConfig {
     return {
       developerId,
       qId: `q-${developerId}-${Date.now()}`,

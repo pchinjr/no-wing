@@ -190,15 +190,15 @@ deno run --allow-all main.ts status
 # Or use executable
 ./no-wing status
 
-# Run tests
-deno test --allow-all src/test/*_test.ts
+# Type Safety & Quality Checks
+deno run --allow-all scripts/check-types.ts    # Comprehensive type safety check
+deno check main.ts                             # TypeScript type checking
+deno lint                                      # Code linting
+deno test --allow-all src/test/*_test.ts       # All tests
 
 # Run specific test suites
 deno test --allow-all src/test/context_manager_test.ts      # Unit tests
 deno test --allow-all src/test/cli_integration_test.ts      # Integration tests
-
-# Lint code
-deno lint
 ```
 
 ### Build Executable
@@ -212,6 +212,7 @@ deno compile --allow-all --output no-wing main.ts
 - **[Installation Guide](INSTALL.md)** - Setup and installation options
 - **[Context Detection](docs/CONTEXT_DETECTION.md)** - How context detection works
 - **[Credential Separation](docs/CREDENTIAL_SEPARATION.md)** - Security architecture
+- **[Type Safety Guide](docs/TYPE_SAFETY.md)** - TypeScript strict mode and best practices
 - **[Contributing](docs/CONTRIBUTING.md)** - Development guidelines
 - **[Testing](docs/TESTING.md)** - Test strategy and execution
 

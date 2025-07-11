@@ -81,7 +81,7 @@ export class AuditLogger {
   private cloudWatchLogGroup?: string;
   private cloudWatchLogStream?: string;
   private eventBuffer: AuditEvent[] = [];
-  private bufferSize: number = 100;
+  private bufferSize = 100;
   private correlationId: string;
 
   constructor(

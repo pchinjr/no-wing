@@ -14,13 +14,13 @@ import { DeploymentManager } from '../deployment/DeploymentManager.ts';
 
 export class NoWingCLI {
   private program: Command;
-  private credentialManager: CredentialManager;
-  private clientFactory: AWSClientFactory;
-  private configManager: ConfigManager;
-  private roleManager: RoleManager;
-  private permissionElevator: PermissionElevator;
-  private auditLogger: AuditLogger;
-  private deploymentManager: DeploymentManager;
+  private credentialManager!: CredentialManager;
+  private clientFactory!: AWSClientFactory;
+  private configManager!: ConfigManager;
+  private roleManager!: RoleManager;
+  private permissionElevator!: PermissionElevator;
+  private auditLogger!: AuditLogger;
+  private deploymentManager!: DeploymentManager;
 
   constructor() {
     this.program = new Command();

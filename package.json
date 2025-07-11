@@ -14,6 +14,8 @@
     "test:unit": "echo 'Use: deno test --allow-all src/test/context_manager_test.ts'",
     "test:integration": "echo 'Use: deno test --allow-all src/test/cli_integration_test.ts'",
     "lint": "echo 'Use: deno lint'",
+    "type-check": "echo 'Use: deno check main.ts'",
+    "type-safety": "echo 'Use: deno run --allow-all scripts/check-types.ts'",
     "clean": "rm -rf dist .no-wing node_modules no-wing"
   },
   "keywords": [
