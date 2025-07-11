@@ -10,7 +10,7 @@ import { PermissionElevator } from '../permissions/PermissionElevator.ts';
 import { AuditLogger } from '../audit/AuditLogger.ts';
 import { DeploymentManager } from '../deployment/DeploymentManager.ts';
 
-import { basename, extname } from "https://deno.land/std@0.208.0/path/mod.ts";
+// Path utilities removed - not currently used
 
 export class NoWingCLI {
   private program: Command;
@@ -252,7 +252,7 @@ Examples:
 
   // === COMMAND HANDLERS ===
 
-  private async handleSetup(options: any): Promise<void> {
+  private handleSetup(options: { profile?: string; region?: string; roleArn?: string }): void {
     console.log('🚀 Setting up no-wing...');
     console.log('Options:', options);
     
@@ -265,7 +265,7 @@ Examples:
     }
   }
 
-  private async handleStatus(options: any): Promise<void> {
+  private handleStatus(_options?: Record<string, unknown>): void {
     console.log('📊 No-wing Status');
     console.log('================');
     
@@ -278,7 +278,7 @@ Examples:
     }
   }
 
-  private async handleDeploy(template: string, options: any): Promise<void> {
+  private handleDeploy(template: string, options: { region?: string; profile?: string }): void {
     console.log(`🚀 Deploying ${template}...`);
     console.log('Options:', options);
     
@@ -291,7 +291,7 @@ Examples:
     }
   }
 
-  private async handleRollback(stackName: string, options: any): Promise<void> {
+  private handleRollback(stackName: string, options: { region?: string; profile?: string }): void {
     console.log(`⏪ Rolling back ${stackName}...`);
     console.log('Options:', options);
     
@@ -305,70 +305,70 @@ Examples:
   }
 
   // Credential handlers
-  private async handleCredentialSwitch(context: string): Promise<void> {
+  private handleCredentialSwitch(context: string): void {
     console.log(`🔄 Switching to ${context} context...`);
     // Implementation would go here
   }
 
-  private async handleCredentialTest(): Promise<void> {
+  private handleCredentialTest(): void {
     console.log('🧪 Testing credentials...');
     // Implementation would go here
   }
 
-  private async handleWhoAmI(): Promise<void> {
+  private handleWhoAmI(): void {
     console.log('👤 Current Identity');
     // Implementation would go here
   }
 
   // Permission handlers
-  private async handleListRoles(options: any): Promise<void> {
+  private handleListRoles(_options?: Record<string, unknown>): void {
     console.log('📋 Available Roles');
     // Implementation would go here
   }
 
-  private async handleTestRole(roleArn: string): Promise<void> {
+  private handleTestRole(roleArn: string): void {
     console.log(`🧪 Testing role: ${roleArn}`);
     // Implementation would go here
   }
 
-  private async handleRequestPermission(roleArn: string, options: any): Promise<void> {
+  private handleRequestPermission(roleArn: string, _options?: Record<string, unknown>): void {
     console.log(`🙋 Requesting permission for: ${roleArn}`);
     // Implementation would go here
   }
 
-  private async handleApprovePermission(requestId: string): Promise<void> {
+  private handleApprovePermission(requestId: string): void {
     console.log(`✅ Approving request: ${requestId}`);
     // Implementation would go here
   }
 
   // Audit handlers
-  private async handleAuditEvents(options: any): Promise<void> {
+  private handleAuditEvents(_options?: Record<string, unknown>): void {
     console.log('📋 Audit Events');
     // Implementation would go here
   }
 
-  private async handleAuditReport(options: any): Promise<void> {
+  private handleAuditReport(_options?: Record<string, unknown>): void {
     console.log('📊 Generating audit report...');
     // Implementation would go here
   }
 
-  private async handleVerifyCloudTrail(): Promise<void> {
+  private handleVerifyCloudTrail(): void {
     console.log('🔍 Verifying CloudTrail integration...');
     // Implementation would go here
   }
 
   // Config handlers
-  private async handleConfigShow(options: any): Promise<void> {
+  private handleConfigShow(_options?: Record<string, unknown>): void {
     console.log('⚙️ Current Configuration');
     // Implementation would go here
   }
 
-  private async handleConfigValidate(): Promise<void> {
+  private handleConfigValidate(): void {
     console.log('✅ Validating configuration...');
     // Implementation would go here
   }
 
-  private async handleConfigMigrate(options: any): Promise<void> {
+  private handleConfigMigrate(_options?: Record<string, unknown>): void {
     console.log('🔄 Migrating configuration...');
     // Implementation would go here
   }
