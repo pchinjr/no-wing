@@ -4,7 +4,14 @@ import { LambdaClient } from '@aws-sdk/client-lambda';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { STSClient } from '@aws-sdk/client-sts';
 import { CredentialManager } from './CredentialManager.ts';
-import type { AwsCredentialIdentity } from '@aws-sdk/types';
+
+// Use the same type definition as CredentialManager
+export type AwsCredentialIdentity = {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string;
+  expiration?: Date;
+};
 
 export type AWSServiceType = 's3' | 'cloudformation' | 'lambda' | 'iam' | 'sts';
 

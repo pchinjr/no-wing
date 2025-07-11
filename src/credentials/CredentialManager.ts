@@ -2,7 +2,14 @@ import { STSClient, GetCallerIdentityCommand, AssumeRoleCommand } from '@aws-sdk
 import { fromIni, fromEnv } from '@aws-sdk/credential-providers';
 import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
-import type { AwsCredentialIdentity } from '@aws-sdk/types';
+
+// Use a more compatible type definition
+export type AwsCredentialIdentity = {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string;
+  expiration?: Date;
+};
 
 export interface CredentialContext {
   type: 'user' | 'no-wing';

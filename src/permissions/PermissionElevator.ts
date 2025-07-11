@@ -159,7 +159,7 @@ export class PermissionElevator {
   /**
    * Check if current credentials have direct permissions
    */
-  private checkDirectPermissions(_context: OperationContext): Promise<ElevationResult> {
+  private async checkDirectPermissions(_context: OperationContext): Promise<ElevationResult> {
     try {
       // This is a simplified check - in production, you'd use IAM policy simulation
       const currentContext = this.credentialManager.getCurrentContext();
@@ -184,7 +184,7 @@ export class PermissionElevator {
       return {
         success: false,
         method: 'direct',
-        message: `Direct permission check failed: ${error.message}`
+        message: `Direct permission check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -260,7 +260,7 @@ export class PermissionElevator {
   /**
    * Try a specific fallback strategy
    */
-  private tryFallbackStrategy(strategy: string, context: OperationContext): Promise<ElevationResult> {
+  private async tryFallbackStrategy(strategy: string, context: OperationContext): Promise<ElevationResult> {
     switch (strategy) {
       case 'read-only-validation':
         return this.tryReadOnlyValidation(context);
@@ -286,7 +286,7 @@ export class PermissionElevator {
   /**
    * Try read-only validation as fallback
    */
-  private tryReadOnlyValidation(context: OperationContext): Promise<ElevationResult> {
+  private async tryReadOnlyValidation(context: OperationContext): Promise<ElevationResult> {
     try {
       // Attempt to validate the operation without making changes
       console.log(`🔍 Attempting read-only validation for ${context.operation}`);
@@ -302,7 +302,7 @@ export class PermissionElevator {
       return {
         success: false,
         method: 'degraded',
-        message: `Read-only validation failed: ${error.message}`
+        message: `Read-only validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -310,7 +310,7 @@ export class PermissionElevator {
   /**
    * Try dry-run as fallback
    */
-  private tryDryRun(context: OperationContext): Promise<ElevationResult> {
+  private async tryDryRun(context: OperationContext): Promise<ElevationResult> {
     try {
       console.log(`🧪 Attempting dry-run for ${context.operation}`);
       
@@ -325,7 +325,7 @@ export class PermissionElevator {
       return {
         success: false,
         method: 'degraded',
-        message: `Dry-run failed: ${error.message}`
+        message: `Dry-run failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -348,7 +348,7 @@ export class PermissionElevator {
   /**
    * Try staged deployment
    */
-  private tryStagedDeployment(context: OperationContext): Promise<ElevationResult> {
+  private async tryStagedDeployment(context: OperationContext): Promise<ElevationResult> {
     try {
       console.log(`🎭 Attempting staged deployment for ${context.operation}`);
       
@@ -363,7 +363,7 @@ export class PermissionElevator {
       return {
         success: false,
         method: 'degraded',
-        message: `Staged deployment failed: ${error.message}`
+        message: `Staged deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -371,7 +371,7 @@ export class PermissionElevator {
   /**
    * Create a permission request
    */
-  createPermissionRequest(context: OperationContext): Promise<ElevationResult> {
+  async createPermissionRequest(context: OperationContext): Promise<ElevationResult> {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const pattern = this.permissionPatterns.get(context.operation);
