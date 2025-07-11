@@ -69,6 +69,13 @@ export class ConfigManager {
   }
 
   /**
+   * Get context manager instance
+   */
+  getContextManager(): ContextManager {
+    return this.contextManager;
+  }
+
+  /**
    * Get configuration directory path
    */
   getConfigDirectory(): string {

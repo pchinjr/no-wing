@@ -6,57 +6,52 @@ set -e
 echo "🚀 Installing No-wing CLI..."
 
 # Check if Deno is installed
-if ! command -v deno &> /dev/null; then
+DENO_PATH=""
+if command -v deno &> /dev/null; then
+    DENO_PATH=$(command -v deno)
+elif [ -n "$SUDO_USER" ] && [ -f "/home/$SUDO_USER/.deno/bin/deno" ]; then
+    # Check user's Deno installation when running with sudo
+    DENO_PATH="/home/$SUDO_USER/.deno/bin/deno"
+elif [ -f "$HOME/.deno/bin/deno" ]; then
+    # Check current user's Deno installation
+    DENO_PATH="$HOME/.deno/bin/deno"
+fi
+
+if [ -z "$DENO_PATH" ]; then
     echo "❌ Deno is required but not installed."
     echo "Please install Deno first: https://deno.land/manual/getting_started/installation"
     exit 1
 fi
 
-# Determine installation method
+echo "✅ Found Deno at: $DENO_PATH"
+
+# Determine installation method and source directory
 INSTALL_METHOD="user"
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [ "$1" = "--system" ]; then
     INSTALL_METHOD="system"
     echo "📦 Installing system-wide (requires sudo)"
+    BIN_DIR="/usr/local/bin"
 elif [ "$1" = "--user" ]; then
     INSTALL_METHOD="user"
     echo "📦 Installing for current user"
+    BIN_DIR="$HOME/.local/bin"
+    mkdir -p "$BIN_DIR"
 else
     echo "📦 Installing for current user (use --system for system-wide)"
-fi
-
-# Create installation directory
-if [ "$INSTALL_METHOD" = "system" ]; then
-    INSTALL_DIR="/opt/no-wing"
-    BIN_DIR="/usr/local/bin"
-    sudo mkdir -p "$INSTALL_DIR"
-else
-    INSTALL_DIR="$HOME/.local/share/no-wing"
     BIN_DIR="$HOME/.local/bin"
-    mkdir -p "$INSTALL_DIR"
     mkdir -p "$BIN_DIR"
 fi
 
-echo "📁 Installation directory: $INSTALL_DIR"
+echo "📁 Source directory: $SOURCE_DIR"
+echo "📁 Binary directory: $BIN_DIR"
 
-# Copy source files
-echo "📋 Copying source files..."
-if [ "$INSTALL_METHOD" = "system" ]; then
-    sudo cp -r src/ "$INSTALL_DIR/"
-    sudo cp no-wing "$INSTALL_DIR/"
-    sudo cp main.ts "$INSTALL_DIR/"
-    sudo chmod +x "$INSTALL_DIR/no-wing"
-else
-    cp -r src/ "$INSTALL_DIR/"
-    cp no-wing "$INSTALL_DIR/"
-    cp main.ts "$INSTALL_DIR/"
-    chmod +x "$INSTALL_DIR/no-wing"
-fi
-
-# Create wrapper script
+# Create wrapper script that runs from source
 echo "🔗 Creating system command..."
 WRAPPER_CONTENT="#!/bin/bash
 # No-wing System Wrapper
-cd \"$INSTALL_DIR\" && ./no-wing \"\$@\""
+cd \"$SOURCE_DIR\" && \"$DENO_PATH\" run --allow-all main.ts \"\$@\""
 
 if [ "$INSTALL_METHOD" = "system" ]; then
     echo "$WRAPPER_CONTENT" | sudo tee "$BIN_DIR/no-wing" > /dev/null

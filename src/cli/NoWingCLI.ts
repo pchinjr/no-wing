@@ -252,7 +252,7 @@ Examples:
 
   // === COMMAND HANDLERS ===
 
-  private handleSetup(options: { profile?: string; region?: string; roleArn?: string }): void {
+  private async handleSetup(options: { profile?: string; region?: string; roleArn?: string }): Promise<void> {
     const context = this.configManager.getContext();
     
     console.log('🚀 Setting up no-wing...');
@@ -268,7 +268,76 @@ Examples:
     console.log('Options:', options);
     
     try {
-      // Implementation would go here
+      // Ensure configuration directory exists
+      await this.configManager.getContextManager().ensureConfigDirectory(context.configDirectory);
+      
+      // Create configuration object
+      const config = {
+        developerId: `user-${Date.now()}`,
+        qId: `q-${Date.now()}`,
+        qLevel: 'standard',
+        region: options.region || 'us-east-1',
+        setupDate: new Date().toISOString(),
+        credentials: {
+          profile: options.profile,
+          region: options.region || 'us-east-1',
+          roleArn: options.roleArn
+        },
+        permissions: {
+          requiredPolicies: [],
+          optionalPolicies: ['IAMReadOnlyAccess'],
+          customPolicies: [
+            {
+              Version: '2012-10-17',
+              Statement: [
+                {
+                  Effect: 'Allow' as const,
+                  Action: [
+                    's3:GetObject',
+                    's3:PutObject',
+                    's3:DeleteObject',
+                    's3:ListBucket'
+                  ],
+                  Resource: [
+                    'arn:aws:s3:::*-no-wing-*',
+                    'arn:aws:s3:::*-no-wing-*/*'
+                  ]
+                },
+                {
+                  Effect: 'Allow' as const,
+                  Action: [
+                    'cloudformation:CreateStack',
+                    'cloudformation:UpdateStack',
+                    'cloudformation:DeleteStack',
+                    'cloudformation:DescribeStacks',
+                    'cloudformation:DescribeStackEvents',
+                    'cloudformation:DescribeStackResources',
+                    'cloudformation:GetTemplate'
+                  ],
+                  Resource: 'arn:aws:cloudformation:*:*:stack/*-no-wing-*'
+                },
+                {
+                  Effect: 'Allow' as const,
+                  Action: [
+                    'logs:CreateLogGroup',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents',
+                    'logs:DescribeLogGroups',
+                    'logs:DescribeLogStreams'
+                  ],
+                  Resource: 'arn:aws:logs:*:*:log-group:/no-wing/*'
+                }
+              ]
+            }
+          ]
+        },
+        audit: {
+          enabled: true
+        }
+      };
+      
+      // Save configuration
+      await this.configManager.saveConfig(config);
       console.log('✅ Setup completed successfully');
     } catch (error) {
       console.error('❌ Setup failed:', error.message);
