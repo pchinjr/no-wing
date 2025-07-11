@@ -51,7 +51,7 @@ export class AWSClientFactory {
       
       // Validate cached client is still valid
       if (await this.isClientValid(cachedClient, serviceType)) {
-        return cachedClient;
+        return cachedClient as T;
       } else {
         // Remove invalid client from cache
         this.clientCache.delete(cacheKey);
@@ -71,11 +71,11 @@ export class AWSClientFactory {
    * Create a new AWS service client
    */
   private createClient(serviceType: AWSServiceType, config: ClientConfig): unknown {
-    const credentials = this.credentialManager.getCurrentCredentials();
+    const credentials = this.credentialManager.getCurrentCredentialProvider();
     const region = config.region || this.defaultRegion;
     
     const clientConfig = {
-      credentials,
+      ...(credentials && { credentials }),
       region,
       maxAttempts: config.maxAttempts || 3,
       requestTimeout: config.requestTimeout || 30000
@@ -110,23 +110,23 @@ export class AWSClientFactory {
       // Simple validation call for each service type
       switch (serviceType) {
         case 's3':
-          await client.send(new (await import('@aws-sdk/client-s3')).ListBucketsCommand({}));
+          await (client as any).send(new (await import('@aws-sdk/client-s3')).ListBucketsCommand({}));
           break;
         
         case 'cloudformation':
-          await client.send(new (await import('@aws-sdk/client-cloudformation')).ListStacksCommand({ StackStatusFilter: ['CREATE_COMPLETE'] }));
+          await (client as any).send(new (await import('@aws-sdk/client-cloudformation')).ListStacksCommand({ StackStatusFilter: ['CREATE_COMPLETE'] }));
           break;
         
         case 'lambda':
-          await client.send(new (await import('@aws-sdk/client-lambda')).ListFunctionsCommand({ MaxItems: 1 }));
+          await (client as any).send(new (await import('@aws-sdk/client-lambda')).ListFunctionsCommand({ MaxItems: 1 }));
           break;
         
         case 'iam':
-          await client.send(new (await import('@aws-sdk/client-iam')).GetUserCommand({}));
+          await (client as any).send(new (await import('@aws-sdk/client-iam')).GetUserCommand({}));
           break;
         
         case 'sts':
-          await client.send(new (await import('@aws-sdk/client-sts')).GetCallerIdentityCommand({}));
+          await (client as any).send(new (await import('@aws-sdk/client-sts')).GetCallerIdentityCommand({}));
           break;
         
         default:
@@ -180,19 +180,19 @@ export class AWSClientFactory {
 
     switch (serviceType) {
       case 's3':
-        return new S3Client(clientConfig) as T;
+        return Promise.resolve(new S3Client(clientConfig) as T);
       
       case 'cloudformation':
-        return new CloudFormationClient(clientConfig) as T;
+        return Promise.resolve(new CloudFormationClient(clientConfig) as T);
       
       case 'lambda':
-        return new LambdaClient(clientConfig) as T;
+        return Promise.resolve(new LambdaClient(clientConfig) as T);
       
       case 'iam':
-        return new IAMClient(clientConfig) as T;
+        return Promise.resolve(new IAMClient(clientConfig) as T);
       
       case 'sts':
-        return new STSClient(clientConfig) as T;
+        return Promise.resolve(new STSClient(clientConfig) as T);
       
       default:
         throw new Error(`Unsupported service type: ${serviceType}`);

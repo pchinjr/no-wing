@@ -143,7 +143,7 @@ export class AuditLogger {
     await this.logEvent({
       eventType: 'credential-switch',
       actor: {
-        type: currentContext?.type || 'unknown',
+        type: currentContext?.type || 'user',
         identity: currentContext?.identity?.arn || 'unknown'
       },
       operation: {
@@ -219,7 +219,7 @@ export class AuditLogger {
     await this.logEvent({
       eventType: 'aws-operation',
       actor: {
-        type: currentContext?.type || 'unknown',
+        type: currentContext?.type || 'user',
         identity: currentContext?.identity?.arn || 'unknown'
       },
       operation: {
@@ -344,8 +344,14 @@ export class AuditLogger {
     let lastEventTime: Date | undefined;
 
     try {
+      const credentials = await this.credentialManager.getCurrentCredentials();
+      if (!credentials) {
+        errors.push('No credentials available for CloudTrail verification');
+        return { isConfigured: false, recentEvents: 0, errors };
+      }
+
       const cloudTrailClient = new CloudTrailClient({
-        credentials: this.credentialManager.getCurrentCredentials(),
+        credentials,
         region: 'us-east-1'
       });
 
@@ -355,7 +361,7 @@ export class AuditLogger {
       const command = new LookupEventsCommand({
         StartTime: startTime,
         EndTime: endTime,
-        MaxItems: 50
+        MaxResults: 50
       });
 
       const response = await cloudTrailClient.send(command);
@@ -439,8 +445,14 @@ export class AuditLogger {
     }
 
     try {
+      const credentials = await this.credentialManager.getCurrentCredentials();
+      if (!credentials) {
+        console.warn('No credentials available for CloudWatch logging');
+        return;
+      }
+
       const cloudWatchClient = new CloudWatchLogsClient({
-        credentials: this.credentialManager.getCurrentCredentials(),
+        credentials,
         region: 'us-east-1'
       });
 
@@ -463,7 +475,7 @@ export class AuditLogger {
 
   private async readLocalEvents(query: AuditQuery): Promise<AuditEvent[]> {
     if (!existsSync(this.logFilePath)) {
-      return [];
+      return [] as AuditEvent[];
     }
 
     const logContent = await Deno.readTextFile(this.logFilePath);
@@ -490,7 +502,7 @@ export class AuditLogger {
   private queryCloudWatchEvents(_query: AuditQuery): Promise<AuditEvent[]> {
     // CloudWatch Logs query implementation would go here
     // For now, return empty array
-    return [];
+    return Promise.resolve([] as AuditEvent[]);
   }
 
   private mergeAndDeduplicateEvents(local: AuditEvent[], cloudWatch: AuditEvent[]): AuditEvent[] {

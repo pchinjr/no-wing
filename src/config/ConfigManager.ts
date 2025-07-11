@@ -165,37 +165,59 @@ export class ConfigManager {
         return result;
       }
 
-      // Test credential validity
-      const stsClient = new STSClient({
-        credentials: this.config.credentials,
-        region: this.config.credentials.region || this.config.region
-      });
+      const creds = this.config.credentials;
+      
+      // Check if we have valid AWS credentials
+      const hasDirectCredentials = creds.accessKeyId && creds.secretAccessKey;
+      const hasProfile = creds.profile;
+      const hasRoleArn = creds.roleArn;
 
-      let identity;
-      try {
-        const identityResponse = await stsClient.send(new GetCallerIdentityCommand({}));
-        identity = identityResponse;
-        console.log(`✅ Credentials valid for: ${identity.Arn}`);
-      } catch (error) {
-        result.errors.push(`Invalid credentials: ${error.message}`);
+      if (!hasDirectCredentials && !hasProfile && !hasRoleArn) {
+        result.errors.push('No valid credential method found (accessKeyId/secretAccessKey, profile, or roleArn)');
         result.isValid = false;
         return result;
       }
 
-      // Check if it's a user (not a role)
-      if (identity.Arn?.includes(':user/')) {
-        await this.validateUserPermissions(result);
-      } else if (identity.Arn?.includes(':role/')) {
-        await this.validateRolePermissions(result, identity.Arn);
-      } else {
-        result.warnings.push('Unknown identity type - manual permission validation required');
+      // Only test credentials if we have direct access keys
+      if (hasDirectCredentials) {
+        // Create properly typed credentials for AWS SDK
+        const awsCredentials = {
+          accessKeyId: creds.accessKeyId!,
+          secretAccessKey: creds.secretAccessKey!,
+          ...(creds.sessionToken && { sessionToken: creds.sessionToken })
+        };
+
+        const stsClient = new STSClient({
+          credentials: awsCredentials,
+          region: creds.region || this.config.region
+        });
+
+        let identity;
+        try {
+          const identityResponse = await stsClient.send(new GetCallerIdentityCommand({}));
+          identity = identityResponse;
+          console.log(`✅ Credentials valid for: ${identity.Arn}`);
+        } catch (error) {
+          result.errors.push(`Invalid credentials: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          result.isValid = false;
+          return result;
+        }
+
+        // Check if it's a user (not a role)
+        if (identity.Arn?.includes(':user/')) {
+          await this.validateUserPermissions(result);
+        } else if (identity.Arn?.includes(':role/')) {
+          await this.validateRolePermissions(result, identity.Arn);
+        } else {
+          result.warnings.push('Unknown identity type - manual permission validation required');
+        }
+
+        // Check for overly permissive policies
+        await this.checkForOverlyPermissivePolicies(result);
+
+        // Validate audit configuration
+        this.validateAuditConfiguration(result);
       }
-
-      // Check for overly permissive policies
-      await this.checkForOverlyPermissivePolicies(result);
-
-      // Validate audit configuration
-      this.validateAuditConfiguration(result);
 
     } catch (error) {
       result.errors.push(`Validation failed: ${error.message}`);
@@ -210,9 +232,29 @@ export class ConfigManager {
    */
   private async validateUserPermissions(result: ValidationResult): Promise<void> {
     try {
+      if (!this.config?.credentials) {
+        result.errors.push('No credentials available for user validation');
+        return;
+      }
+
+      const creds = this.config.credentials;
+      
+      // Only validate if we have direct credentials
+      if (!creds.accessKeyId || !creds.secretAccessKey) {
+        result.warnings.push('Cannot validate user permissions without direct access keys');
+        return;
+      }
+
+      // Create properly typed credentials for AWS SDK
+      const awsCredentials = {
+        accessKeyId: creds.accessKeyId,
+        secretAccessKey: creds.secretAccessKey,
+        ...(creds.sessionToken && { sessionToken: creds.sessionToken })
+      };
+
       const iamClient = new IAMClient({
-        credentials: this.config!.credentials,
-        region: this.config!.credentials!.region || this.config!.region
+        credentials: awsCredentials,
+        region: creds.region || this.config.region
       });
 
       // Get user information
@@ -264,7 +306,7 @@ export class ConfigManager {
   /**
    * Validate role permissions
    */
-  private validateRolePermissions(result: ValidationResult, roleArn: string): Promise<void> {
+  private async validateRolePermissions(result: ValidationResult, roleArn: string): Promise<void> {
     // For roles, we mainly validate that they exist and are assumable
     result.recommendations.push(
       'Using role-based access - ensure the role has appropriate policies attached'
@@ -273,12 +315,13 @@ export class ConfigManager {
     // Extract role name from ARN for logging
     const roleName = roleArn.split('/').pop();
     console.log(`📋 Validating role: ${roleName}`);
+    return Promise.resolve();
   }
 
   /**
    * Check for overly permissive policies
    */
-  private checkForOverlyPermissivePolicies(result: ValidationResult): Promise<void> {
+  private async checkForOverlyPermissivePolicies(result: ValidationResult): Promise<void> {
     // This is a simplified check - in production, you'd want more sophisticated policy analysis
     const _dangerousPatterns = [
       { pattern: '"Action": "*"', message: 'Wildcard actions detected' },
@@ -291,6 +334,7 @@ export class ConfigManager {
     result.recommendations.push(
       'Regularly review IAM policies to ensure they follow the principle of least privilege'
     );
+    return Promise.resolve();
   }
 
   /**

@@ -126,7 +126,7 @@ export class DeploymentManager {
 
       result.duration = Date.now() - startTime;
       result.auditTrail = auditTrail;
-      result.method = elevationResult.method as string;
+      result.method = elevationResult.method as 'direct' | 'role-assumption' | 'manual-approval';
 
       // Log final deployment result
       await this.auditLogger.logAWSOperation(
@@ -185,7 +185,16 @@ export class DeploymentManager {
 
       if (currentStatus?.includes('ROLLBACK')) {
         // Stack is already in rollback state
-        rollbackResult = await this.waitForStackCompletion(stackInfo.Stacks[0].StackId!, region);
+        const stackResult = await this.waitForStackCompletion(stackInfo.Stacks[0].StackId!, region);
+        rollbackResult = {
+          success: stackResult.status.includes('COMPLETE'),
+          stackId: stackInfo.Stacks[0].StackId!,
+          stackStatus: stackResult.status,
+          outputs: stackResult.outputs,
+          duration: 0,
+          method: 'direct' as const,
+          auditTrail: []
+        };
         auditTrail.push('Stack already in rollback state, waiting for completion');
       } else if (currentStatus?.includes('FAILED')) {
         // Delete failed stack
@@ -366,7 +375,7 @@ export class DeploymentManager {
         Key: key,
         Value: value
       })) : undefined,
-      Capabilities: config.capabilities,
+      Capabilities: config.capabilities as any,
       OnFailure: rollbackConfig?.onFailure || 'ROLLBACK'
     });
 
@@ -401,7 +410,7 @@ export class DeploymentManager {
         Key: key,
         Value: value
       })) : undefined,
-      Capabilities: config.capabilities
+      Capabilities: config.capabilities as any
     });
 
     try {
@@ -450,13 +459,13 @@ export class DeploymentManager {
     // This would require custom implementation based on stack state
     auditTrail.push(`Stack update cancellation not directly supported: ${stackName}`);
     
-    return {
+    return Promise.resolve({
       success: false,
       error: 'Stack update cancellation requires manual intervention',
       duration: 0,
       method: 'direct',
       auditTrail
-    };
+    });
   }
 
   private async waitForStackCompletion(stackId: string, region?: string): Promise<{
@@ -514,7 +523,7 @@ export class DeploymentManager {
       success: false,
       error,
       duration: Date.now() - startTime,
-      method: method as string,
+      method: method as 'direct' | 'role-assumption' | 'manual-approval',
       auditTrail
     };
   }

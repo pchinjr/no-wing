@@ -1,15 +1,8 @@
 import { STSClient, GetCallerIdentityCommand, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { fromIni, fromEnv } from '@aws-sdk/credential-providers';
+import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from 'npm:@aws-sdk/types@^3.0.0';
 import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
-
-// Use a more compatible type definition
-export type AwsCredentialIdentity = {
-  accessKeyId: string;
-  secretAccessKey: string;
-  sessionToken?: string;
-  expiration?: Date;
-};
 
 export interface CredentialContext {
   type: 'user' | 'no-wing';
@@ -33,8 +26,8 @@ export interface NoWingCredentialConfig {
 
 export class CredentialManager {
   private currentContext: CredentialContext | null = null;
-  private userCredentials: AwsCredentialIdentity | null = null;
-  private noWingCredentials: AwsCredentialIdentity | null = null;
+  private userCredentials: AwsCredentialIdentityProvider | null = null;
+  private noWingCredentials: AwsCredentialIdentityProvider | null = null;
   private stsClient: STSClient;
   private configPath: string;
 
@@ -72,21 +65,27 @@ export class CredentialManager {
       // Try environment variables first
       this.userCredentials = fromEnv();
       
-      // Validate by getting caller identity
-      const tempSTS = new STSClient({ 
-        credentials: this.userCredentials,
-        region: 'us-east-1'
-      });
-      
-      await tempSTS.send(new GetCallerIdentityCommand({}));
-      console.log('✅ User credentials loaded from environment');
+      // Validate by resolving and testing credentials
+      try {
+        const resolvedCreds = await this.userCredentials();
+        const tempSTS = new STSClient({ 
+          credentials: resolvedCreds,
+          region: 'us-east-1'
+        });
+        
+        await tempSTS.send(new GetCallerIdentityCommand({}));
+        console.log('✅ User credentials loaded from environment');
+      } catch (resolveError) {
+        throw resolveError;
+      }
     } catch (_envError) {
       try {
         // Fall back to AWS config file
         this.userCredentials = fromIni();
         
+        const resolvedCreds = await this.userCredentials();
         const tempSTS = new STSClient({ 
-          credentials: this.userCredentials,
+          credentials: resolvedCreds,
           region: 'us-east-1'
         });
         
@@ -115,24 +114,36 @@ export class CredentialManager {
       if (credentialConfig.profile) {
         // Use AWS profile
         this.noWingCredentials = fromIni({ profile: credentialConfig.profile });
+        
+        // Validate credentials
+        const resolvedCreds = await this.noWingCredentials();
+        const tempSTS = new STSClient({ 
+          credentials: resolvedCreds,
+          region: credentialConfig.region || 'us-east-1'
+        });
+        
+        await tempSTS.send(new GetCallerIdentityCommand({}));
       } else if (credentialConfig.accessKeyId && credentialConfig.secretAccessKey) {
-        // Use direct credentials
-        this.noWingCredentials = {
+        // Use direct credentials - wrap in provider function
+        const directCreds = {
           accessKeyId: credentialConfig.accessKeyId,
           secretAccessKey: credentialConfig.secretAccessKey,
           sessionToken: credentialConfig.sessionToken
         };
+        
+        this.noWingCredentials = () => Promise.resolve(directCreds);
+        
+        // Validate credentials
+        const tempSTS = new STSClient({ 
+          credentials: directCreds,
+          region: credentialConfig.region || 'us-east-1'
+        });
+        
+        await tempSTS.send(new GetCallerIdentityCommand({}));
       } else {
         throw new Error('No valid no-wing credentials found in config');
       }
 
-      // Validate credentials
-      const tempSTS = new STSClient({ 
-        credentials: this.noWingCredentials,
-        region: credentialConfig.region || 'us-east-1'
-      });
-      
-      await tempSTS.send(new GetCallerIdentityCommand({}));
       console.log('✅ No-wing credentials loaded and validated');
     } catch (error) {
       throw new Error(`Failed to load no-wing credentials: ${error.message}`);
@@ -145,7 +156,7 @@ export class CredentialManager {
   async switchToUserContext(): Promise<CredentialContext> {
     try {
       this.stsClient = new STSClient({ 
-        credentials: this.userCredentials,
+        credentials: this.userCredentials || undefined,
         region: 'us-east-1'
       });
 
@@ -173,7 +184,7 @@ export class CredentialManager {
   async switchToNoWingContext(): Promise<CredentialContext> {
     try {
       this.stsClient = new STSClient({ 
-        credentials: this.noWingCredentials,
+        credentials: this.noWingCredentials || undefined,
         region: 'us-east-1'
       });
 
@@ -260,12 +271,32 @@ export class CredentialManager {
   /**
    * Get credentials for use with other AWS SDK clients
    */
-  getCurrentCredentials(): AwsCredentialIdentity | null {
-    if (this.currentContext?.type === 'user') {
-      return this.userCredentials;
-    } else {
-      return this.noWingCredentials;
+  async getCurrentCredentials(): Promise<AwsCredentialIdentity | null> {
+    const provider = this.currentContext?.type === 'user' 
+      ? this.userCredentials 
+      : this.noWingCredentials;
+    
+    if (!provider) {
+      return null;
     }
+
+    try {
+      return await provider();
+    } catch (error) {
+      console.error('Failed to resolve credentials:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get credential provider for use with AWS SDK clients
+   */
+  getCurrentCredentialProvider(): AwsCredentialIdentityProvider | undefined {
+    const provider = this.currentContext?.type === 'user' 
+      ? this.userCredentials 
+      : this.noWingCredentials;
+    
+    return provider || undefined;
   }
 
   /**

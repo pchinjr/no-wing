@@ -201,7 +201,7 @@ export class RoleManager {
       }
 
       const iamClient = new IAMClient({
-        credentials: this.credentialManager.getCurrentCredentials(),
+        credentials: this.credentialManager.getCurrentCredentialProvider(),
         region: 'us-east-1'
       });
 
@@ -348,7 +348,7 @@ export class RoleManager {
 
       // Fetch from AWS
       const iamClient = new IAMClient({
-        credentials: this.credentialManager.getCurrentCredentials(),
+        credentials: this.credentialManager.getCurrentCredentialProvider(),
         region: 'us-east-1'
       });
 
