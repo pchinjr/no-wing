@@ -9,6 +9,9 @@ import { RoleManager } from '../permissions/RoleManager.ts';
 import { PermissionElevator } from '../permissions/PermissionElevator.ts';
 import { AuditLogger } from '../audit/AuditLogger.ts';
 import { DeploymentManager } from '../deployment/DeploymentManager.ts';
+import { ProjectDetector } from '../services/ProjectDetector.ts';
+import { ServiceAccountManager } from '../services/ServiceAccountManager.ts';
+import { QSessionManager } from '../services/QSessionManager.ts';
 
 // Path utilities removed - not currently used
 
@@ -104,6 +107,14 @@ Documentation: https://github.com/your-org/no-wing
       .description('📊 Show current system status')
       .option('--verbose', 'Show detailed information')
       .action(this.handleStatus.bind(this));
+
+    this.program
+      .command('launch')
+      .description('🛫 Launch Amazon Q with service account identity')
+      .option('-b, --background', 'Launch Q in background mode')
+      .option('-v, --verbose', 'Show detailed launch information')
+      .option('--force', 'Force launch even if session exists')
+      .action(this.handleLaunch.bind(this));
 
     this.program
       .command('deploy')
@@ -372,6 +383,203 @@ Examples:
       console.log('✅ System operational');
     } catch (error) {
       console.error('❌ Status check failed:', error.message);
+      Deno.exit(1);
+    }
+  }
+
+  private async handleLaunch(options: { background?: boolean; verbose?: boolean; force?: boolean }): Promise<void> {
+    console.log('🛫 no-wing - Launch Q with Service Account Identity');
+    console.log('');
+
+    try {
+      // Check if no-wing is configured
+      const context = this.configManager.getContext();
+      if (!this.configManager.configExists()) {
+        console.log('❌ No-wing not configured in current context');
+        console.log('');
+        console.log('🚀 Run setup first:');
+        console.log('  no-wing setup --profile <aws-profile>');
+        return;
+      }
+
+      // Load configuration
+      const noWingConfig = await this.configManager.loadConfig();
+      
+      console.log('🔍 Detecting project configuration...');
+      
+      // Detect project and generate Q config
+      const detector = new ProjectDetector();
+      const projectType = await detector.detect();
+      const qConfig = await detector.generateQConfig(noWingConfig);
+
+      if (options.verbose) {
+        console.log('');
+        console.log('📋 Project Detection Results:');
+        console.log(`  • Type: ${projectType.name} (${projectType.type})`);
+        console.log(`  • Confidence: ${Math.round(projectType.confidence * 100)}%`);
+        console.log(`  • Indicators: ${projectType.indicators.join(', ')}`);
+        console.log('');
+      }
+
+      console.log('🔍 Validating Q service account...');
+      
+      // Check service account status
+      const serviceManager = new ServiceAccountManager(qConfig, noWingConfig);
+      const status = await serviceManager.getStatus();
+
+      if (!status.exists) {
+        console.log('❌ Q service account not configured');
+        console.log('');
+        console.log('🚀 Run setup to configure Q service account:');
+        console.log('  no-wing setup --profile <aws-profile>');
+        return;
+      }
+
+      if (!status.healthy) {
+        console.log('⚠️  Q service account exists but is not healthy:');
+        console.log('');
+        
+        for (const error of status.errors) {
+          console.log(`  ❌ ${error}`);
+        }
+        
+        for (const warning of status.warnings) {
+          console.log(`  ⚠️  ${warning}`);
+        }
+        
+        console.log('');
+        console.log('🔧 To fix Q service account:');
+        console.log('  no-wing setup --force    # Recreate service account');
+        console.log('  no-wing status --verbose # Check detailed status');
+        return;
+      }
+
+      console.log('✅ Q service account validated');
+      console.log('');
+
+      // Show Q identity summary
+      console.log('🔐 Q Identity Summary:');
+      console.log(`  • User: ${qConfig.username}`);
+      console.log(`  • Git: ${qConfig.gitIdentity.name} <${qConfig.gitIdentity.email}>`);
+      console.log(`  • AWS Profile: ${qConfig.awsProfile}`);
+      console.log(`  • Project: ${projectType.name} (${projectType.type.toUpperCase()})`);
+      console.log(`  • Workspace: ${qConfig.workspace}`);
+      console.log('');
+
+      // Show AWS account info if available
+      try {
+        const accountInfo = await serviceManager.getAWSAccountInfo();
+        if (accountInfo) {
+          console.log('☁️  AWS Context:');
+          console.log(`  • Account: ${accountInfo.accountId}`);
+          console.log(`  • Region: ${accountInfo.region}`);
+          console.log('');
+        }
+      } catch {
+        // AWS info not available, continue
+      }
+
+      // Initialize session manager
+      const sessionManager = new QSessionManager(qConfig, noWingConfig);
+      
+      // Check for existing session
+      const currentStatus = sessionManager.getSessionStatus();
+      if (currentStatus.active && !options.force) {
+        console.log('⚠️  Q session already active');
+        console.log(`  Session ID: ${currentStatus.sessionId}`);
+        console.log(`  Started: ${currentStatus.startTime?.toLocaleString()}`);
+        console.log(`  PID: ${currentStatus.pid}`);
+        console.log('');
+        
+        console.log('💡 Options:');
+        console.log('  • Use --force to restart session');
+        console.log('  • Run "no-wing launch --force" to restart');
+        console.log('  • Check session with "no-wing status"');
+        return;
+      }
+
+      // Stop existing session if force flag is used
+      if (currentStatus.active && options.force) {
+        console.log('🔄 Stopping existing Q session...');
+        await sessionManager.stopSession();
+        console.log('✅ Existing session stopped');
+        console.log('');
+      }
+
+      // Security confirmation (skip in background mode)
+      if (!options.background) {
+        console.log('🛡️  Security Notes:');
+        console.log('  • Q will operate with its own identity, not yours');
+        console.log('  • Q commits will show "Q Assistant" as the author');
+        console.log('  • Q will use its own AWS credentials for deployments');
+        console.log('  • All Q actions will be logged and auditable');
+        console.log('');
+
+        const proceed = confirm('Launch Q with service account identity?');
+        if (!proceed) {
+          console.log('Launch cancelled');
+          return;
+        }
+        console.log('');
+      }
+
+      // Initialize workspace if needed
+      if (!status.workspace) {
+        console.log('🏗️  Initializing Q workspace...');
+        await serviceManager.initializeWorkspace();
+      }
+
+      // Launch Q session
+      console.log('🚀 Launching Q with service account identity...');
+      
+      const sessionConfig = await sessionManager.launchQ(Deno.cwd());
+      
+      console.log('');
+      console.log('🎉 Q Assistant is now running with its own identity!');
+      console.log('');
+      console.log('📋 Session Information:');
+      console.log(`  • Session ID: ${sessionConfig.sessionId}`);
+      console.log(`  • Started: ${sessionConfig.startTime.toLocaleString()}`);
+      console.log(`  • Working Directory: ${sessionConfig.workingDirectory}`);
+      console.log(`  • Q Workspace: ${qConfig.workspace}`);
+      console.log('');
+      
+      if (options.verbose) {
+        console.log('🔍 Technical Details:');
+        console.log(`  • Q User: ${qConfig.username}`);
+        console.log(`  • Q Home: ${qConfig.homeDirectory}`);
+        console.log(`  • Git Author: ${qConfig.gitIdentity.name}`);
+        console.log(`  • AWS Profile: ${qConfig.awsProfile}`);
+        console.log('');
+      }
+      
+      console.log('🎯 What Q can do now:');
+      console.log('  • Make git commits with Q Assistant identity');
+      console.log('  • Deploy AWS resources using Q\'s credentials');
+      console.log('  • Operate in isolated workspace environment');
+      console.log('  • All actions logged and attributed to Q');
+      console.log('');
+      
+      console.log('💡 Q is now running in interactive mode');
+      console.log('✨ Q is operating with its own identity - no more masquerading!');
+      
+    } catch (error) {
+      console.error('❌ Launch failed:', error instanceof Error ? error.message : 'Unknown error');
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found')) {
+          console.log('');
+          console.log('💡 Q CLI not found:');
+          console.log('   • Install Amazon Q CLI first');
+          console.log('   • Make sure "q" command is in your PATH');
+        } else if (error.message.includes('credentials')) {
+          console.log('');
+          console.log('💡 Credential issue:');
+          console.log('   • Check AWS credentials configuration');
+          console.log('   • Run "no-wing status" to verify setup');
+        }
+      }
+      
       Deno.exit(1);
     }
   }
