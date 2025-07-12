@@ -436,7 +436,7 @@ Examples:
       }
 
       if (!status.healthy) {
-        console.log('⚠️  Q service account exists but is not healthy:');
+        console.log('⚠️  Q service account exists but has some issues:');
         console.log('');
         
         for (const error of status.errors) {
@@ -448,10 +448,22 @@ Examples:
         }
         
         console.log('');
-        console.log('🔧 To fix Q service account:');
-        console.log('  no-wing setup --force    # Recreate service account');
-        console.log('  no-wing status --verbose # Check detailed status');
-        return;
+        
+        // Check if the only issue is AWS credentials (which might be profile-based)
+        const onlyAwsIssue = status.errors.length === 1 && 
+                            status.errors[0].includes('AWS credentials') &&
+                            status.exists;
+        
+        if (!onlyAwsIssue) {
+          console.log('🔧 To fix Q service account:');
+          console.log('  no-wing setup --force    # Recreate service account');
+          console.log('  no-wing status --verbose # Check detailed status');
+          return;
+        } else {
+          console.log('⚠️  Proceeding with Q launch despite AWS credential validation issue');
+          console.log('   (This may be due to profile-based credentials)');
+          console.log('');
+        }
       }
 
       console.log('✅ Q service account validated');
@@ -532,7 +544,7 @@ Examples:
       // Launch Q session
       console.log('🚀 Launching Q with service account identity...');
       
-      const sessionConfig = await sessionManager.launchQ(Deno.cwd());
+      const sessionConfig = await sessionManager.launchQ(Deno.cwd(), ['chat']);
       
       console.log('');
       console.log('🎉 Q Assistant is now running with its own identity!');

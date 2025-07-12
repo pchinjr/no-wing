@@ -31,6 +31,7 @@ export class QSessionManager {
   private qConfig: QConfig;
   private noWingConfig: NoWingConfig;
   private sessionFile: string;
+  private currentProcess?: Deno.ChildProcess;
 
   constructor(qConfig: QConfig, noWingConfig: NoWingConfig) {
     this.qConfig = qConfig;
@@ -41,7 +42,7 @@ export class QSessionManager {
   /**
    * Launch Q CLI with service account identity
    */
-  async launchQ(workingDirectory: string): Promise<QSessionConfig> {
+  async launchQ(workingDirectory: string, qCliArgs: string[] = ['chat']): Promise<QSessionConfig> {
     const sessionId = this.generateSessionId();
     const startTime = new Date();
 
@@ -60,8 +61,11 @@ export class QSessionManager {
         environment
       };
 
-      // Launch Q CLI process
-      const process = await this.startQProcess(environment, workingDirectory);
+      // Sync project to Q workspace
+      await this.syncProjectToQWorkspace(workingDirectory);
+
+      // Launch Q CLI process with service account identity
+      const process = await this.startQProcess(environment, qCliArgs);
       sessionConfig.pid = process.pid;
 
       // Save session information
@@ -156,7 +160,7 @@ export class QSessionManager {
       
       // Q workspace
       'Q_WORKSPACE': this.qConfig.workspace,
-      'Q_PROJECT_PATH': workingDirectory,
+      'Q_PROJECT_PATH': `${this.qConfig.workspace}/project`,
       'Q_SESSION_ID': this.generateSessionId(),
       
       // Preserve essential system environment
@@ -181,29 +185,141 @@ export class QSessionManager {
   }
 
   /**
-   * Start Q CLI process with proper environment
+   * Sync current project to Q's workspace
    */
-  private async startQProcess(environment: Record<string, string>, workingDirectory: string): Promise<Deno.ChildProcess> {
+  private async syncProjectToQWorkspace(sourceDir: string): Promise<void> {
+    const targetDir = `${this.qConfig.workspace}/project`;
+    
+    // Create target directory
+    await Deno.mkdir(targetDir, { recursive: true });
+
+    // Files to sync (avoiding large directories like node_modules)
+    const filesToSync = [
+      'package.json',
+      'template.yaml', 'template.yml',
+      'cdk.json',
+      'serverless.yml', 'serverless.yaml',
+      'tsconfig.json',
+      'README.md',
+      'requirements.txt',
+      'setup.py',
+      'pyproject.toml'
+    ];
+
+    for (const file of filesToSync) {
+      const sourcePath = `${sourceDir}/${file}`;
+      const targetPath = `${targetDir}/${file}`;
+      
+      try {
+        await Deno.stat(sourcePath);
+        await Deno.copyFile(sourcePath, targetPath);
+      } catch {
+        // File doesn't exist, skip
+      }
+    }
+
+    // Copy source directories (with basic filtering)
+    const dirsToSync = ['src', 'lib', 'lambda', 'functions'];
+    for (const dir of dirsToSync) {
+      const sourcePath = `${sourceDir}/${dir}`;
+      const targetPath = `${targetDir}/${dir}`;
+      
+      try {
+        const stat = await Deno.stat(sourcePath);
+        if (stat.isDirectory) {
+          await this.copyDirectory(sourcePath, targetPath);
+        }
+      } catch {
+        // Directory doesn't exist, skip
+      }
+    }
+
+    // Create Q workspace marker
+    const markerContent = [
+      '# Q Assistant Project Copy',
+      `# Original: ${sourceDir}`,
+      `# Copied: ${new Date().toISOString()}`,
+      `# Session: ${this.currentProcess ? 'active' : 'none'}`,
+      '',
+      'This is Q Assistant\'s working copy of your project.',
+      'Q operates in this isolated workspace with its own identity.'
+    ].join('\n');
+
+    await Deno.writeTextFile(`${targetDir}/.q-workspace`, markerContent);
+  }
+
+  /**
+   * Copy directory recursively (basic implementation)
+   */
+  private async copyDirectory(source: string, target: string): Promise<void> {
+    await Deno.mkdir(target, { recursive: true });
+    
+    for await (const entry of Deno.readDir(source)) {
+      const sourcePath = `${source}/${entry.name}`;
+      const targetPath = `${target}/${entry.name}`;
+      
+      if (entry.isDirectory) {
+        // Skip common large directories
+        if (['node_modules', '.git', '__pycache__', '.venv'].includes(entry.name)) {
+          continue;
+        }
+        await this.copyDirectory(sourcePath, targetPath);
+      } else {
+        await Deno.copyFile(sourcePath, targetPath);
+      }
+    }
+  }
+
+  /**
+   * Start Q CLI process with proper service account context
+   */
+  private async startQProcess(environment: Record<string, string>, qCliArgs: string[]): Promise<Deno.ChildProcess> {
     // Check if Q CLI is available
     const qCliPath = await this.findQCli();
     if (!qCliPath) {
       throw new Error('Amazon Q CLI not found. Please install Q CLI first.');
     }
 
-    console.log(`🔧 Starting Q CLI: ${qCliPath}`);
-    console.log(`📂 Working directory: ${workingDirectory}`);
-    console.log(`🏠 Q Home: ${environment.HOME}`);
-    console.log(`👤 Q Identity: ${environment.GIT_AUTHOR_NAME} <${environment.GIT_AUTHOR_EMAIL}>`);
+    const projectDir = `${this.qConfig.workspace}/project`;
 
-    // Launch Q CLI in interactive mode
+    console.log(`🚀 Launching Q CLI with service account identity:`);
+    console.log(`   Command: q ${qCliArgs.join(' ')}`);
+    console.log(`   Working Directory: ${projectDir}`);
+    console.log(`   Q Identity: ${this.qConfig.username}`);
+    console.log(`   AWS Profile: ${this.qConfig.awsProfile}`);
+    console.log(`   Git Identity: ${this.qConfig.gitIdentity.name} <${this.qConfig.gitIdentity.email}>`);
+    console.log('');
+
+    // For Deno implementation, we'll run Q CLI directly with the service account environment
+    // In a production system, you might want to use actual user switching with sudo
     const process = new Deno.Command(qCliPath, {
-      args: ['chat'],
-      cwd: workingDirectory,
+      args: qCliArgs,
+      cwd: projectDir,
       env: environment,
       stdin: 'inherit',
       stdout: 'inherit',
       stderr: 'inherit'
     }).spawn();
+
+    // Store reference to current process
+    this.currentProcess = process;
+
+    // Handle process completion
+    process.status.then((status) => {
+      console.log('');
+      if (status.success) {
+        console.log('✅ Q CLI session ended successfully');
+      } else {
+        console.log(`⚠️  Q CLI session ended with code ${status.code}`);
+      }
+      
+      this.currentProcess = undefined;
+      this.cleanupSession();
+    }).catch((error) => {
+      console.error('❌ Q CLI process error:', error.message);
+      this.currentProcess = undefined;
+      this.cleanupSession();
+    });
 
     return process;
   }
@@ -259,6 +375,8 @@ export class QSessionManager {
     try {
       await Deno.mkdir(this.qConfig.workspace, { recursive: true });
       await Deno.mkdir(`${this.qConfig.workspace}/logs`, { recursive: true });
+      await Deno.mkdir(`${this.qConfig.workspace}/sessions`, { recursive: true });
+      await Deno.mkdir(`${this.qConfig.workspace}/project`, { recursive: true });
     } catch (error) {
       throw new Error(`Failed to create workspace: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
