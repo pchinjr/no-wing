@@ -50,21 +50,23 @@ export interface ValidationResult {
 }
 
 export class ConfigManager {
-  private configPath: string;
+  private configPath?: string;
   private config: NoWingConfig | null = null;
   private contextManager: ContextManager;
-  private context: ProjectContext;
+  private context?: ProjectContext;
 
   constructor() {
     this.contextManager = new ContextManager();
-    this.context = this.contextManager.detectContext();
-    this.configPath = `${this.context.configDirectory}/config.json`;
   }
 
   /**
-   * Get current context information
+   * Get current context information (lazy initialization)
    */
   getContext(): ProjectContext {
+    if (!this.context) {
+      this.context = this.contextManager.detectContext();
+      this.configPath = `${this.context.configDirectory}/config.json`;
+    }
     return this.context;
   }
 
@@ -76,17 +78,24 @@ export class ConfigManager {
   }
 
   /**
-   * Get configuration directory path
+   * Get configuration file path (lazy initialization)
    */
+  getConfigPath(): string {
+    if (!this.configPath) {
+      const context = this.getContext();
+      this.configPath = `${context.configDirectory}/config.json`;
+    }
+    return this.configPath;
+  }
   getConfigDirectory(): string {
-    return this.context.configDirectory;
+    return this.getContext().configDirectory;
   }
 
   /**
    * Check if configuration exists
    */
   configExists(): boolean {
-    return existsSync(this.configPath);
+    return existsSync(this.getConfigPath());
   }
 
   /**
@@ -95,11 +104,12 @@ export class ConfigManager {
   async loadConfig(): Promise<NoWingConfig> {
     try {
       if (!this.configExists()) {
-        const contextDesc = this.contextManager.getContextDescription(this.context);
-        throw new Error(`Configuration file not found: ${this.configPath} (${contextDesc})`);
+        const context = this.getContext();
+        const contextDesc = this.contextManager.getContextDescription(context);
+        throw new Error(`Configuration file not found: ${this.getConfigPath()} (${contextDesc})`);
       }
 
-      const configData = await Deno.readTextFile(this.configPath);
+      const configData = await Deno.readTextFile(this.getConfigPath());
       this.config = JSON.parse(configData);
 
       // Validate basic structure
@@ -120,13 +130,14 @@ export class ConfigManager {
   async saveConfig(config: NoWingConfig): Promise<void> {
     try {
       // Ensure directory exists
-      const configDir = dirname(this.configPath);
+      const configPath = this.getConfigPath();
+      const configDir = dirname(configPath);
       if (!existsSync(configDir)) {
         Deno.mkdirSync(configDir, { recursive: true });
       }
 
       // Write configuration
-      await Deno.writeTextFile(this.configPath, JSON.stringify(config, null, 2));
+      await Deno.writeTextFile(configPath, JSON.stringify(config, null, 2));
       this.config = config;
 
       console.log('✅ Configuration saved successfully');
