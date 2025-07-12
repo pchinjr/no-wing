@@ -160,7 +160,8 @@ export class QSessionManager {
       
       // Q workspace information
       'Q_WORKSPACE': this.qConfig.workspace,
-      'Q_PROJECT_PATH': `${this.qConfig.workspace}/project`,
+      'Q_PROJECT_PATH': this.qConfig.projectPath,  // Original project directory
+      'Q_WORKSPACE_PROJECT': `${this.qConfig.workspace}/project`,  // Copied project in workspace
       'Q_SESSION_ID': this.generateSessionId(),
       'Q_SERVICE_ACCOUNT': this.qConfig.username,
       
@@ -168,8 +169,9 @@ export class QSessionManager {
       'PATH': Deno.env.get('PATH') || '/usr/local/bin:/usr/bin:/bin',
       'TERM': Deno.env.get('TERM') || 'xterm-256color',
       'LANG': Deno.env.get('LANG') || 'en_US.UTF-8',
-      'USER': Deno.env.get('USER') || 'user',
-      'LOGNAME': Deno.env.get('LOGNAME') || 'user',
+      // Q service account identity (not system user)
+      'USER': this.qConfig.username,  // Q runs as its own user identity
+      'LOGNAME': this.qConfig.username,  // Consistent with USER
     };
 
     // Add AWS credentials if available

@@ -100,7 +100,8 @@ Deno.test("Q Launch Integration - Complete workflow", async () => {
     const environment = await prepareMethod(tempProject);
     
     // Verify environment variables
-    assertEquals(environment.HOME, tempHome);
+    // Note: HOME remains user's HOME for AWS CLI authentication
+    assertEquals(environment.HOME, Deno.env.get('HOME'));  // Should be user's HOME, not Q's
     assertEquals(environment.USER, 'q-integration-test-project');
     assertEquals(environment.AWS_PROFILE, 'test-profile');
     assertEquals(environment.AWS_REGION, 'us-east-1');

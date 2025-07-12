@@ -70,7 +70,8 @@ Deno.test("QSessionManager - prepare Q environment", async () => {
     const environment = await prepareMethod('/tmp/test-project');
     
     // Check essential environment variables
-    assertEquals(environment.HOME, tempHome);
+    // Note: HOME should be user's HOME for AWS CLI authentication
+    assertEquals(environment.HOME, Deno.env.get('HOME'));  // Should be user's HOME
     assertEquals(environment.USER, 'q-test-project');
     assertEquals(environment.AWS_PROFILE, 'test-profile');
     assertEquals(environment.AWS_REGION, 'us-east-1');

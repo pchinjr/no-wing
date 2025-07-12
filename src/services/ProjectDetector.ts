@@ -79,8 +79,8 @@ export class ProjectDetector {
     // Generate Q-specific identifiers
     const qUsername = `q-${projectName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     // NEW: Workspace in project directory instead of /tmp for better DX
-    const qHomeDir = join(this.workingDirectory, '.no-wing', 'q-home');
-    const qWorkspace = join(this.workingDirectory, '.no-wing', 'workspace');
+    const qHomeDir = join(this.currentDir, '.no-wing', 'q-home');
+    const qWorkspace = join(this.currentDir, '.no-wing', 'workspace');
 
     return {
       username: qUsername,
