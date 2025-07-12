@@ -181,12 +181,44 @@ export class QSessionManager {
       }
     }
 
+    // Setup Q CLI authentication in service account environment
+    await this.setupQAuthentication();
+
     return environment;
   }
 
   /**
-   * Sync current project to Q's workspace
+   * Setup Q CLI authentication in service account environment
    */
+  private async setupQAuthentication(): Promise<void> {
+    try {
+      const userHome = Deno.env.get('HOME') || '/tmp';
+      const userQConfigDir = `${userHome}/.aws/amazonq`;
+      const qHome = this.qConfig.homeDirectory;
+      const qAwsDir = `${qHome}/.aws`;
+      const qConfigDir = `${qAwsDir}/amazonq`;
+
+      // Check if user has Q authentication
+      try {
+        await Deno.stat(userQConfigDir);
+      } catch {
+        console.log('⚠️  No Q CLI authentication found in user account');
+        console.log('   Q will need to authenticate separately in the service account');
+        return;
+      }
+
+      // Create Q's AWS directory
+      await Deno.mkdir(qAwsDir, { recursive: true });
+
+      // Copy Q authentication to service account
+      await this.copyDirectory(userQConfigDir, qConfigDir);
+      
+      console.log('✅ Q CLI authentication copied to service account');
+    } catch (error) {
+      console.warn('⚠️  Failed to setup Q authentication:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('   Q may need to authenticate separately');
+    }
+  }
   private async syncProjectToQWorkspace(sourceDir: string): Promise<void> {
     const targetDir = `${this.qConfig.workspace}/project`;
     
@@ -249,7 +281,7 @@ export class QSessionManager {
   }
 
   /**
-   * Copy directory recursively (basic implementation)
+   * Copy directory recursively (enhanced for Q authentication)
    */
   private async copyDirectory(source: string, target: string): Promise<void> {
     await Deno.mkdir(target, { recursive: true });
@@ -259,13 +291,17 @@ export class QSessionManager {
       const targetPath = `${target}/${entry.name}`;
       
       if (entry.isDirectory) {
-        // Skip common large directories
+        // Skip common large directories, but allow Q config directories
         if (['node_modules', '.git', '__pycache__', '.venv'].includes(entry.name)) {
           continue;
         }
         await this.copyDirectory(sourcePath, targetPath);
       } else {
-        await Deno.copyFile(sourcePath, targetPath);
+        try {
+          await Deno.copyFile(sourcePath, targetPath);
+        } catch (error) {
+          console.warn(`Warning: Failed to copy ${entry.name}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
       }
     }
   }
