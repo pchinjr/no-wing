@@ -113,6 +113,7 @@ Documentation: https://github.com/your-org/no-wing
       .description('🛫 Launch Amazon Q with service account identity')
       .option('-b, --background', 'Launch Q in background mode')
       .option('-v, --verbose', 'Show detailed launch information')
+      .option('-y, --yes', 'Skip confirmation prompt')
       .option('--force', 'Force launch even if session exists')
       .action(this.handleLaunch.bind(this));
 
@@ -387,7 +388,7 @@ Examples:
     }
   }
 
-  private async handleLaunch(options: { background?: boolean; verbose?: boolean; force?: boolean }): Promise<void> {
+  private async handleLaunch(options: { background?: boolean; verbose?: boolean; yes?: boolean; force?: boolean }): Promise<void> {
     console.log('🛫 no-wing - Launch Q with Service Account Identity');
     console.log('');
 
@@ -527,7 +528,7 @@ Examples:
         console.log('  • All Q actions will be logged and auditable');
         console.log('');
 
-        const proceed = confirm('Launch Q with service account identity?');
+        const proceed = options.yes || confirm('Launch Q with service account identity?');
         if (!proceed) {
           console.log('Launch cancelled');
           return;
