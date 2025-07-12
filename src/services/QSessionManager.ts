@@ -141,32 +141,35 @@ export class QSessionManager {
    * Prepare Q environment with service account identity
    */
   private async prepareQEnvironment(workingDirectory: string): Promise<Record<string, string>> {
+    const userHome = Deno.env.get('HOME') || '/tmp';
+    
     const environment: Record<string, string> = {
-      // Q identity environment
-      'HOME': this.qConfig.homeDirectory,
-      'USER': this.qConfig.username,
-      'LOGNAME': this.qConfig.username,
+      // Preserve user HOME for Q CLI authentication
+      'HOME': userHome,
       
-      // AWS configuration
-      'AWS_PROFILE': this.qConfig.awsProfile,
-      'AWS_DEFAULT_REGION': this.qConfig.region,
-      'AWS_REGION': this.qConfig.region,
-      
-      // Git configuration
+      // Q service account identity for git operations
       'GIT_AUTHOR_NAME': this.qConfig.gitIdentity.name,
       'GIT_AUTHOR_EMAIL': this.qConfig.gitIdentity.email,
       'GIT_COMMITTER_NAME': this.qConfig.gitIdentity.name,
       'GIT_COMMITTER_EMAIL': this.qConfig.gitIdentity.email,
       
-      // Q workspace
+      // AWS configuration for service account
+      'AWS_PROFILE': this.qConfig.awsProfile,
+      'AWS_DEFAULT_REGION': this.qConfig.region,
+      'AWS_REGION': this.qConfig.region,
+      
+      // Q workspace information
       'Q_WORKSPACE': this.qConfig.workspace,
       'Q_PROJECT_PATH': `${this.qConfig.workspace}/project`,
       'Q_SESSION_ID': this.generateSessionId(),
+      'Q_SERVICE_ACCOUNT': this.qConfig.username,
       
       // Preserve essential system environment
       'PATH': Deno.env.get('PATH') || '/usr/local/bin:/usr/bin:/bin',
       'TERM': Deno.env.get('TERM') || 'xterm-256color',
       'LANG': Deno.env.get('LANG') || 'en_US.UTF-8',
+      'USER': Deno.env.get('USER') || 'user',
+      'LOGNAME': Deno.env.get('LOGNAME') || 'user',
     };
 
     // Add AWS credentials if available
@@ -180,9 +183,6 @@ export class QSessionManager {
         }
       }
     }
-
-    // Setup Q CLI authentication in service account environment
-    await this.setupQAuthentication();
 
     return environment;
   }
