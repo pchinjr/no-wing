@@ -1,11 +1,10 @@
 {
-  "developerId": "user-1752338089525",
-  "qId": "q-1752338089525",
+  "developerId": "user-1752340827977",
+  "qId": "q-1752340827977",
   "qLevel": "standard",
   "region": "us-east-1",
-  "setupDate": "2025-07-12T16:34:49.525Z",
+  "setupDate": "2025-07-12T17:20:27.977Z",
   "credentials": {
-    "profile": "AdministratorAccess-837132623653",
     "region": "us-east-1"
   },
   "permissions": {
