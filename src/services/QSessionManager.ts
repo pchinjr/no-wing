@@ -318,6 +318,28 @@ export class QSessionManager {
   }
 
   /**
+   * Copy directory recursively (for Q authentication setup)
+   */
+  private async copyDirectory(source: string, target: string): Promise<void> {
+    await Deno.mkdir(target, { recursive: true });
+    
+    for await (const entry of Deno.readDir(source)) {
+      const sourcePath = `${source}/${entry.name}`;
+      const targetPath = `${target}/${entry.name}`;
+      
+      if (entry.isDirectory) {
+        await this.copyDirectory(sourcePath, targetPath);
+      } else {
+        try {
+          await Deno.copyFile(sourcePath, targetPath);
+        } catch (error) {
+          console.warn(`Warning: Failed to copy ${entry.name}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+    }
+  }
+
+  /**
    * Ensure Q workspace exists (for logs and sessions only, not project copies)
    */
   private async ensureWorkspace(): Promise<void> {
