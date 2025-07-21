@@ -1,0 +1,77 @@
+{
+  "name": "no-wing",
+  "version": "1.0.0",
+  "description": "Q Service Account Manager - Give Amazon Q its own identity for secure, auditable project automation",
+  "main": "bin/no-wing.js",
+  "type": "commonjs",
+  "bin": {
+    "no-wing": "./bin/no-wing.js"
+  },
+  "scripts": {
+    "start": "echo 'Use: deno run --allow-all main.ts'",
+    "build": "echo 'Use: deno compile --allow-all --output no-wing main.ts'",
+    "test": "echo 'Use: deno test --allow-all src/test/*_test.ts'",
+    "test:unit": "echo 'Use: deno test --allow-all src/test/context_manager_test.ts'",
+    "test:integration": "echo 'Use: deno test --allow-all src/test/cli_integration_test.ts'",
+    "lint": "echo 'Use: deno lint'",
+    "type-check": "echo 'Use: deno check main.ts'",
+    "type-safety": "echo 'Use: deno run --allow-all scripts/check-types.ts'",
+    "clean": "rm -rf dist .no-wing node_modules no-wing"
+  },
+  "keywords": [
+    "amazon-q",
+    "ai",
+    "service-account",
+    "security",
+    "aws",
+    "git",
+    "identity",
+    "isolation",
+    "deno",
+    "typescript",
+    "automation",
+    "audit"
+  ],
+  "author": "Paul Chin Jr <paul@paulchinjr.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pchinjr/no-wing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pchinjr/no-wing/issues"
+  },
+  "homepage": "https://github.com/pchinjr/no-wing#readme",
+  "engines": {
+    "deno": ">=1.37.0"
+  },
+  "peerDependencies": {
+    "deno": ">=1.37.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "docs/",
+    "tsconfig.json",
+    "package.json"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.0.0",
+    "@aws-sdk/client-cloudtrail": "^3.0.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.0.0",
+    "@aws-sdk/client-iam": "^3.0.0",
+    "@aws-sdk/client-lambda": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-sts": "^3.0.0",
+    "@aws-sdk/credential-providers": "^3.0.0",
+    "commander": "^11.0.0"
+  }
+}
