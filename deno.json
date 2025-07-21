@@ -1,0 +1,19 @@
+{
+  "tasks": {
+    "start": "deno run --allow-read --allow-write --allow-env --allow-net main.ts",
+    "test": "deno test --allow-read --allow-write --allow-env",
+    "compile": "deno compile --allow-read --allow-write --allow-env --allow-net main.ts"
+  },
+  "fmt": {
+    "files": {
+      "include": ["**/*.ts"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "singleQuote": false,
+      "proseWrap": "preserve"
+    }
+  }
+}
