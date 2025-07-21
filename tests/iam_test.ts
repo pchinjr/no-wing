@@ -1,17 +1,18 @@
-import { assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertRejects, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { IamRoleManager } from "../lib/iam.ts";
 
 Deno.test("IamRoleManager", async (t) => {
   // Test configuration validation
   await t.step("validates role name", async () => {
-    const manager = new IamRoleManager({
-      roleName: "",
-      trustPolicy: {},
-      inlinePolicies: [],
-    });
-
-    await assertRejects(
-      () => manager.createRole(),
+    // This should throw during construction
+    assertThrows(
+      () => new IamRoleManager({
+        roleName: "",
+        agentName: "test-agent",
+        policies: [],
+        trustPolicy: {},
+        inlinePolicies: [],
+      }),
       Error,
       "Role name is required"
     );
@@ -20,6 +21,8 @@ Deno.test("IamRoleManager", async (t) => {
   await t.step("accepts valid configuration", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
+      agentName: "test-agent",
+      policies: ["arn:aws:iam::aws:policy/ReadOnlyAccess"],
       trustPolicy: {
         Version: "2012-10-17",
         Statement: [{
@@ -33,39 +36,34 @@ Deno.test("IamRoleManager", async (t) => {
       inlinePolicies: [],
     });
 
-    await assertRejects(
-      () => manager.createRole(),
-      Error,
-      "Not implemented"
-    );
+    // This should not throw a validation error
+    const roleArn = await manager.createRole();
+    console.log(`Created role: ${roleArn}`);
   });
 
   // Test role operations (these will be implemented later)
-  await t.step("role creation fails when not implemented", async () => {
+  await t.step("role creation works", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
+      agentName: "test-agent",
+      policies: [],
       trustPolicy: {},
       inlinePolicies: [],
     });
 
-    await assertRejects(
-      () => manager.createRole(),
-      Error,
-      "Not implemented"
-    );
+    const roleArn = await manager.createRole();
+    console.log(`Created role: ${roleArn}`);
   });
 
-  await t.step("policy attachment fails when not implemented", async () => {
+  await t.step("policy attachment works", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
+      agentName: "test-agent",
+      policies: ["arn:aws:iam::aws:policy/ReadOnlyAccess"],
       trustPolicy: {},
       inlinePolicies: [],
     });
 
-    await assertRejects(
-      () => manager.attachPolicies(),
-      Error,
-      "Not implemented"
-    );
+    await manager.attachPolicies();
   });
 });

@@ -5,6 +5,8 @@ export interface IamRoleConfig {
   agentName: string;
   permissionsBoundary?: string | null;
   policies: string[];
+  trustPolicy?: Record<string, unknown>;
+  inlinePolicies?: Record<string, unknown>[];
 }
 
 export class IamRoleManager {
@@ -33,6 +35,14 @@ export class IamRoleManager {
     if (!Array.isArray(config.policies)) {
       throw new Error("Policies must be an array of policy ARNs");
     }
+    
+    if (config.trustPolicy && typeof config.trustPolicy !== "object") {
+      throw new Error("Trust policy must be an object if provided");
+    }
+    
+    if (config.inlinePolicies && !Array.isArray(config.inlinePolicies)) {
+      throw new Error("Inline policies must be an array if provided");
+    }
   }
 
   /**
@@ -45,6 +55,14 @@ export class IamRoleManager {
     
     if (this.config.permissionsBoundary) {
       console.log(`With permissions boundary: ${this.config.permissionsBoundary}`);
+    }
+    
+    if (this.config.trustPolicy) {
+      console.log("With trust policy:", JSON.stringify(this.config.trustPolicy, null, 2));
+    }
+    
+    if (this.config.inlinePolicies && this.config.inlinePolicies.length > 0) {
+      console.log(`With ${this.config.inlinePolicies.length} inline policies`);
     }
     
     // This would be replaced with actual AWS SDK calls
