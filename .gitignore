@@ -9,3 +9,6 @@
 
 # Deno lock file
 deno.lock
+
+# no-wing config
+.no-wing/
