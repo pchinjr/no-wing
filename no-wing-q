@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# no-wing-q - Wrapper script for running Amazon Q with no-wing agent identity
+
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Run the no-wing q command
+deno run --allow-read --allow-write --allow-env --allow-run --allow-net "$SCRIPT_DIR/main.ts" q "$@"
