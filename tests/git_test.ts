@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertRejects,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { GitIdentityManager } from "../lib/git.ts";
 
 Deno.test("GitIdentityManager", async (t) => {
@@ -25,7 +22,6 @@ Deno.test("GitIdentityManager", async (t) => {
       email: "q-agent@no-wing.local",
     });
 
-    // Validation happens implicitly in configureIdentity
     assertRejects(
       () => manager.configureIdentity(),
       Error,

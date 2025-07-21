@@ -32,7 +32,7 @@ Deno.test("cli: init command", async (t) => {
   });
 
   await t.step("creates state directory", async () => {
-    // TODO: Implement when init is ready
+    // TODO(@pchinjr): #15 Implement state directory creation test
     const stateDir = "./state";
     await assertRejects(
       async () => {
@@ -53,10 +53,10 @@ Deno.test("cli: init command", async (t) => {
 // Test error handling
 Deno.test("cli: error handling", async (t) => {
   await t.step("handles missing permissions", () => {
-    // TODO: Add permission tests when commands are implemented
+    // TODO(@pchinjr): #16 Add permission tests
   });
 
   await t.step("handles invalid config", () => {
-    // TODO: Add config validation tests when implemented
+    // TODO(@pchinjr): #17 Add config validation tests
   });
 });

@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertRejects,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { IamRoleManager } from "../lib/iam.ts";
 
 Deno.test("IamRoleManager", async (t) => {
@@ -36,7 +33,6 @@ Deno.test("IamRoleManager", async (t) => {
       inlinePolicies: [],
     });
 
-    // Validation happens implicitly in createRole
     assertRejects(
       () => manager.createRole(),
       Error,

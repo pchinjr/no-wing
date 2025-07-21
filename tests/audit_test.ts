@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertRejects,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { AuditLogger } from "../lib/audit.ts";
 
 Deno.test("AuditLogger", async (t) => {
