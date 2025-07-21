@@ -9,28 +9,27 @@ export interface GitIdentityConfig {
 export class GitIdentityManager {
   constructor(private config: GitIdentityConfig) {}
 
-  // Methods are marked async as they will use Git operations in the future
   configureIdentity(): Promise<void> {
+    if (!this.config.name || !this.config.email) {
+      return Promise.reject(new Error("Git identity name and email are required"));
+    }
     // TODO(@pchinjr): #9 Implement local git config
-    this.validateConfig();
     return Promise.reject(new Error("Not implemented"));
   }
 
   commit(_message: string, _files: string[]): Promise<void> {
+    if (!this.config.name || !this.config.email) {
+      return Promise.reject(new Error("Git identity name and email are required"));
+    }
     // TODO(@pchinjr): #10 Implement git commit with agent identity
-    this.validateConfig();
     return Promise.reject(new Error("Not implemented"));
   }
 
   resetIdentity(): Promise<void> {
-    // TODO(@pchinjr): #11 Implement cleanup of git config
-    this.validateConfig();
-    return Promise.reject(new Error("Not implemented"));
-  }
-
-  private validateConfig(): void {
     if (!this.config.name || !this.config.email) {
-      throw new Error("Git identity name and email are required");
+      return Promise.reject(new Error("Git identity name and email are required"));
     }
+    // TODO(@pchinjr): #11 Implement cleanup of git config
+    return Promise.reject(new Error("Not implemented"));
   }
 }
