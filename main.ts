@@ -212,14 +212,74 @@ async function assignRole() {
 }
 
 async function runAgent() {
-  // TODO(@pchinjr): #3 Implement agent execution with identity
+  const args = parse(Deno.args);
   const config = await getConfig();
+  
+  // Get command to run (everything after "run")
+  const commandIndex = Deno.args.indexOf("run");
+  if (commandIndex === -1 || commandIndex === Deno.args.length - 1) {
+    throw new Error("No command specified. Usage: no-wing run <command>");
+  }
+  
+  const command = Deno.args.slice(commandIndex + 1);
   console.log(`Running as agent: ${config.agentName}`);
+  console.log(`Command: ${command.join(" ")}`);
   
-  // Log the attempt
-  await logAudit("run-agent-attempt", { agent: config.agentName });
-  
-  throw new Error("Agent execution not implemented yet");
+  try {
+    // Import the IamRoleManager and AgentRunner
+    const { IamRoleManager } = await import("./lib/iam.ts");
+    const { AgentRunner } = await import("./lib/agent.ts");
+    
+    // Create role manager to get the role ARN
+    const roleName = config.iamRolePattern.replace("{agent}", config.agentName);
+    const roleManager = new IamRoleManager({
+      roleName,
+      agentName: config.agentName,
+      permissionsBoundary: config.permissionsBoundary,
+      policies: [],
+    });
+    
+    // Get the role ARN
+    const roleArn = await roleManager.getRoleArn();
+    
+    // Create agent runner
+    const runner = new AgentRunner({
+      agentName: config.agentName,
+      command,
+      roleArn,
+      env: {
+        // Add any additional environment variables here
+      },
+    });
+    
+    // Run the command
+    const result = await runner.run();
+    
+    // Log the action
+    await logAudit("run-command", {
+      agent: config.agentName,
+      command: command.join(" "),
+      success: result.success,
+    });
+    
+    // Output the result
+    if (result.success) {
+      console.log(result.output);
+      console.log("✅ Command executed successfully");
+    } else {
+      console.error("❌ Command failed:");
+      console.error(result.output);
+      Deno.exit(1);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit("run-command-failed", {
+      agent: config.agentName,
+      command: command.join(" "),
+      error: errorMessage,
+    });
+    throw error;
+  }
 }
 
 async function showAudit() {
