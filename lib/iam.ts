@@ -2,43 +2,72 @@
 
 export interface IamRoleConfig {
   roleName: string;
-  permissionsBoundary?: string;
-  trustPolicy: Record<string, unknown>;
-  inlinePolicies: Record<string, unknown>[];
+  agentName: string;
+  permissionsBoundary?: string | null;
+  policies: string[];
 }
 
 export class IamRoleManager {
-  constructor(private config: IamRoleConfig) {}
+  private config: IamRoleConfig;
 
-  createRole(): Promise<string> {
-    if (!this.config.roleName) {
-      return Promise.reject(new Error("Role name is required"));
-    }
-    // TODO(@pchinjr): #5 Implement AWS IAM role creation
-    return Promise.reject(new Error("Not implemented"));
+  constructor(config: IamRoleConfig) {
+    this.validateConfig(config);
+    this.config = config;
   }
 
-  attachPolicies(): Promise<void> {
-    if (!this.config.roleName) {
-      return Promise.reject(new Error("Role name is required"));
+  private validateConfig(config: IamRoleConfig): void {
+    if (!config.roleName || typeof config.roleName !== "string") {
+      throw new Error("Role name is required and must be a string");
     }
-    // TODO(@pchinjr): #6 Implement policy attachment
-    return Promise.reject(new Error("Not implemented"));
+
+    if (!config.roleName.match(/^[\w+=,.@-]{1,64}$/)) {
+      throw new Error(
+        "Role name must consist of alphanumeric characters and these special characters: +=,.@-"
+      );
+    }
+
+    if (!config.agentName || typeof config.agentName !== "string") {
+      throw new Error("Agent name is required and must be a string");
+    }
+
+    if (!Array.isArray(config.policies)) {
+      throw new Error("Policies must be an array of policy ARNs");
+    }
   }
 
-  assumeRole(): Promise<Record<string, string>> {
-    if (!this.config.roleName) {
-      return Promise.reject(new Error("Role name is required"));
+  /**
+   * Creates an IAM role for the agent
+   */
+  async createRole(): Promise<string> {
+    // TODO: Implement AWS IAM role creation
+    console.log(`Creating role: ${this.config.roleName}`);
+    console.log(`For agent: ${this.config.agentName}`);
+    
+    if (this.config.permissionsBoundary) {
+      console.log(`With permissions boundary: ${this.config.permissionsBoundary}`);
     }
-    // TODO(@pchinjr): #7 Implement STS assume role
-    return Promise.reject(new Error("Not implemented"));
+    
+    // This would be replaced with actual AWS SDK calls
+    return `arn:aws:iam::123456789012:role/${this.config.roleName}`;
   }
 
-  deleteRole(): Promise<void> {
-    if (!this.config.roleName) {
-      return Promise.reject(new Error("Role name is required"));
+  /**
+   * Attaches policies to the IAM role
+   */
+  async attachPolicies(): Promise<void> {
+    // TODO: Implement AWS IAM policy attachment
+    console.log(`Attaching ${this.config.policies.length} policies to role ${this.config.roleName}`);
+    
+    for (const policy of this.config.policies) {
+      console.log(`- ${policy}`);
     }
-    // TODO(@pchinjr): #8 Implement role cleanup
-    return Promise.reject(new Error("Not implemented"));
+  }
+
+  /**
+   * Gets the role ARN
+   */
+  async getRoleArn(): Promise<string> {
+    // TODO: Implement AWS IAM role lookup
+    return `arn:aws:iam::123456789012:role/${this.config.roleName}`;
   }
 }

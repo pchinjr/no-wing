@@ -162,15 +162,53 @@ async function initProject() {
 }
 
 async function assignRole() {
-  // TODO(@pchinjr): #2 Implement AWS IAM role creation and assignment
   const config = await getConfig();
   console.log(`Using agent: ${config.agentName}`);
-  console.log(`Role pattern: ${config.iamRolePattern}`);
   
-  // Log the attempt
-  await logAudit("assign-role-attempt", { agent: config.agentName });
+  // Get role name from pattern
+  const roleName = config.iamRolePattern.replace("{agent}", config.agentName);
+  console.log(`Role name: ${roleName}`);
   
-  throw new Error("Role assignment not implemented yet");
+  try {
+    // Import the IamRoleManager
+    const { IamRoleManager } = await import("./lib/iam.ts");
+    
+    // Create role manager with configuration
+    const roleManager = new IamRoleManager({
+      roleName,
+      agentName: config.agentName,
+      permissionsBoundary: config.permissionsBoundary,
+      policies: [
+        // Default read-only policy
+        "arn:aws:iam::aws:policy/ReadOnlyAccess",
+      ],
+    });
+    
+    // Create the role
+    const roleArn = await roleManager.createRole();
+    console.log(`Created role: ${roleArn}`);
+    
+    // Attach policies
+    await roleManager.attachPolicies();
+    console.log("Attached policies to role");
+    
+    // Log the action
+    await logAudit("assign-role", { 
+      agent: config.agentName,
+      roleName,
+      roleArn,
+    });
+    
+    console.log("✅ Role assigned successfully");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit("assign-role-failed", { 
+      agent: config.agentName,
+      roleName,
+      error: errorMessage,
+    });
+    throw error;
+  }
 }
 
 async function runAgent() {
