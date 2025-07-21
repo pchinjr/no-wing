@@ -3,21 +3,21 @@ import { IamRoleManager } from "../lib/iam.ts";
 
 Deno.test("IamRoleManager", async (t) => {
   // Test configuration validation
-  await t.step("validates role name", () => {
+  await t.step("validates role name", async () => {
     const manager = new IamRoleManager({
       roleName: "",
       trustPolicy: {},
       inlinePolicies: [],
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.createRole(),
       Error,
       "Role name is required"
     );
   });
 
-  await t.step("accepts valid configuration", () => {
+  await t.step("accepts valid configuration", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
       trustPolicy: {
@@ -33,7 +33,7 @@ Deno.test("IamRoleManager", async (t) => {
       inlinePolicies: [],
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.createRole(),
       Error,
       "Not implemented"
@@ -41,28 +41,28 @@ Deno.test("IamRoleManager", async (t) => {
   });
 
   // Test role operations (these will be implemented later)
-  await t.step("role creation fails when not implemented", () => {
+  await t.step("role creation fails when not implemented", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
       trustPolicy: {},
       inlinePolicies: [],
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.createRole(),
       Error,
       "Not implemented"
     );
   });
 
-  await t.step("policy attachment fails when not implemented", () => {
+  await t.step("policy attachment fails when not implemented", async () => {
     const manager = new IamRoleManager({
       roleName: "test-role",
       trustPolicy: {},
       inlinePolicies: [],
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.attachPolicies(),
       Error,
       "Not implemented"

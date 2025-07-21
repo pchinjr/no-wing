@@ -3,26 +3,26 @@ import { GitIdentityManager } from "../lib/git.ts";
 
 Deno.test("GitIdentityManager", async (t) => {
   // Test configuration validation
-  await t.step("validates identity configuration", () => {
+  await t.step("validates identity configuration", async () => {
     const manager = new GitIdentityManager({
       name: "",
       email: "",
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.configureIdentity(),
       Error,
       "Git identity name and email are required"
     );
   });
 
-  await t.step("accepts valid configuration", () => {
+  await t.step("accepts valid configuration", async () => {
     const manager = new GitIdentityManager({
       name: "Q Agent",
       email: "q-agent@no-wing.local",
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.configureIdentity(),
       Error,
       "Not implemented"
@@ -30,39 +30,39 @@ Deno.test("GitIdentityManager", async (t) => {
   });
 
   // Test Git operations (these will be implemented later)
-  await t.step("identity configuration fails when not implemented", () => {
+  await t.step("identity configuration fails when not implemented", async () => {
     const manager = new GitIdentityManager({
       name: "Q Agent",
       email: "q-agent@no-wing.local",
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.configureIdentity(),
       Error,
       "Not implemented"
     );
   });
 
-  await t.step("commit fails when not implemented", () => {
+  await t.step("commit fails when not implemented", async () => {
     const manager = new GitIdentityManager({
       name: "Q Agent",
       email: "q-agent@no-wing.local",
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.commit("test commit", ["file.txt"]),
       Error,
       "Not implemented"
     );
   });
 
-  await t.step("reset identity fails when not implemented", () => {
+  await t.step("reset identity fails when not implemented", async () => {
     const manager = new GitIdentityManager({
       name: "Q Agent",
       email: "q-agent@no-wing.local",
     });
 
-    assertRejects(
+    await assertRejects(
       () => manager.resetIdentity(),
       Error,
       "Not implemented"

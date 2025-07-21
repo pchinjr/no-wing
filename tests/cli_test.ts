@@ -34,14 +34,14 @@ Deno.test("cli: init command", async (t) => {
   await t.step("creates state directory", async () => {
     // TODO(@pchinjr): #15 Implement state directory creation test
     const stateDir = "./state";
-    await assertRejects(
-      async () => {
-        const stat = await Deno.stat(stateDir);
-        assertEquals(stat.isDirectory, true);
-      },
-      Deno.errors.NotFound,
-      "state directory should not exist yet"
-    );
+    try {
+      await Deno.stat(stateDir);
+      throw new Error("State directory should not exist yet");
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error;
+      }
+    }
   });
 
   await t.step("cleanup", async () => {
