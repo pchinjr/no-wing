@@ -1,9 +1,0 @@
-[user]
-	name = Q Assistant
-	email = q-assistant@no-wing.no-wing.local
-[init]
-	defaultBranch = main
-[core]
-	editor = nano
-[pull]
-	rebase = false
