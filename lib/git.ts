@@ -56,6 +56,12 @@ export class GitIdentityManager {
     Deno.env.set("GIT_AUTHOR_EMAIL", this.config.authorEmail);
     Deno.env.set("GIT_COMMITTER_NAME", this.config.authorName);
     Deno.env.set("GIT_COMMITTER_EMAIL", this.config.authorEmail);
+    
+    console.log("Environment variables set:");
+    console.log(`GIT_AUTHOR_NAME: ${Deno.env.get("GIT_AUTHOR_NAME")}`);
+    console.log(`GIT_AUTHOR_EMAIL: ${Deno.env.get("GIT_AUTHOR_EMAIL")}`);
+    console.log(`GIT_COMMITTER_NAME: ${Deno.env.get("GIT_COMMITTER_NAME")}`);
+    console.log(`GIT_COMMITTER_EMAIL: ${Deno.env.get("GIT_COMMITTER_EMAIL")}`);
   }
 
   /**
@@ -70,17 +76,43 @@ export class GitIdentityManager {
 
     // Determine the repository path
     const repoPath = this.config.repository || ".";
+    console.log(`Repository path: ${repoPath}`);
+
+    // Check git status
+    console.log("Checking git status...");
+    const statusCommand = new Deno.Command("git", {
+      args: ["status"],
+      cwd: repoPath,
+    });
+    const statusResult = await statusCommand.output();
+    console.log("Git status:");
+    console.log(new TextDecoder().decode(statusResult.stdout));
 
     // Run git commands
+    console.log("Adding files...");
     const addCommand = new Deno.Command("git", {
       args: ["add", "."],
       cwd: repoPath,
     });
     const addResult = await addCommand.output();
     if (!addResult.success) {
-      throw new Error(`Failed to add files: ${new TextDecoder().decode(addResult.stderr)}`);
+      const error = new TextDecoder().decode(addResult.stderr);
+      console.error(`Failed to add files: ${error}`);
+      throw new Error(`Failed to add files: ${error}`);
     }
+    console.log("Files added successfully");
 
+    // Check git status again
+    console.log("Checking git status after add...");
+    const statusCommand2 = new Deno.Command("git", {
+      args: ["status"],
+      cwd: repoPath,
+    });
+    const statusResult2 = await statusCommand2.output();
+    console.log("Git status after add:");
+    console.log(new TextDecoder().decode(statusResult2.stdout));
+
+    console.log("Committing changes...");
     const commitCommand = new Deno.Command("git", {
       args: ["commit", "-m", message],
       cwd: repoPath,
@@ -94,13 +126,17 @@ export class GitIdentityManager {
     const commitResult = await commitCommand.output();
     
     if (!commitResult.success) {
-      throw new Error(`Failed to commit: ${new TextDecoder().decode(commitResult.stderr)}`);
+      const error = new TextDecoder().decode(commitResult.stderr);
+      console.error(`Failed to commit: ${error}`);
+      throw new Error(`Failed to commit: ${error}`);
     }
 
     const output = new TextDecoder().decode(commitResult.stdout);
+    console.log("Commit output:");
     console.log(output);
 
     // Get the commit hash
+    console.log("Getting commit hash...");
     const hashCommand = new Deno.Command("git", {
       args: ["rev-parse", "HEAD"],
       cwd: repoPath,
@@ -108,10 +144,13 @@ export class GitIdentityManager {
     const hashResult = await hashCommand.output();
     
     if (!hashResult.success) {
-      throw new Error(`Failed to get commit hash: ${new TextDecoder().decode(hashResult.stderr)}`);
+      const error = new TextDecoder().decode(hashResult.stderr);
+      console.error(`Failed to get commit hash: ${error}`);
+      throw new Error(`Failed to get commit hash: ${error}`);
     }
 
     const commitHash = new TextDecoder().decode(hashResult.stdout).trim();
+    console.log(`Commit hash: ${commitHash}`);
     return commitHash;
   }
 
@@ -126,6 +165,12 @@ export class GitIdentityManager {
     Deno.env.delete("GIT_AUTHOR_EMAIL");
     Deno.env.delete("GIT_COMMITTER_NAME");
     Deno.env.delete("GIT_COMMITTER_EMAIL");
+    
+    console.log("Environment variables after reset:");
+    console.log(`GIT_AUTHOR_NAME: ${Deno.env.get("GIT_AUTHOR_NAME") || "unset"}`);
+    console.log(`GIT_AUTHOR_EMAIL: ${Deno.env.get("GIT_AUTHOR_EMAIL") || "unset"}`);
+    console.log(`GIT_COMMITTER_NAME: ${Deno.env.get("GIT_COMMITTER_NAME") || "unset"}`);
+    console.log(`GIT_COMMITTER_EMAIL: ${Deno.env.get("GIT_COMMITTER_EMAIL") || "unset"}`);
   }
 
   /**
@@ -137,6 +182,7 @@ export class GitIdentityManager {
 
     // If no commit hash is provided, use HEAD
     const hash = commitHash || "HEAD";
+    console.log(`Verifying authorship of commit: ${hash}`);
 
     // Get the commit author
     const authorCommand = new Deno.Command("git", {
@@ -146,7 +192,9 @@ export class GitIdentityManager {
     const authorResult = await authorCommand.output();
     
     if (!authorResult.success) {
-      throw new Error(`Failed to get commit author: ${new TextDecoder().decode(authorResult.stderr)}`);
+      const error = new TextDecoder().decode(authorResult.stderr);
+      console.error(`Failed to get commit author: ${error}`);
+      throw new Error(`Failed to get commit author: ${error}`);
     }
 
     const author = new TextDecoder().decode(authorResult.stdout).trim();
