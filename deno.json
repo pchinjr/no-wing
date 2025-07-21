@@ -1,9 +1,9 @@
 {
   "tasks": {
-    "start": "deno run --allow-read --allow-write --allow-env --allow-net main.ts",
-    "test": "deno test --allow-read --allow-write --allow-env --allow-net --allow-temp",
-    "test:watch": "deno test --watch --allow-read --allow-write --allow-env --allow-net --allow-temp",
-    "test:coverage": "deno test --coverage=coverage --allow-read --allow-write --allow-env --allow-net --allow-temp && deno coverage coverage",
+    "start": "deno run --allow-read=$NO_WING_STATE_DIR,$AWS_CREDENTIALS_PATH --allow-write=$NO_WING_STATE_DIR --allow-env=AWS_PROFILE,AWS_REGION,GIT_AUTHOR_NAME,GIT_AUTHOR_EMAIL,NO_WING_STATE_DIR,AWS_CREDENTIALS_PATH --allow-net=$AWS_ENDPOINTS main.ts",
+    "test": "deno test --allow-read=$NO_WING_STATE_DIR,$AWS_CREDENTIALS_PATH --allow-write=$NO_WING_STATE_DIR --allow-env=AWS_PROFILE,AWS_REGION,GIT_AUTHOR_NAME,GIT_AUTHOR_EMAIL,NO_WING_STATE_DIR,AWS_CREDENTIALS_PATH --allow-net=$AWS_ENDPOINTS --allow-temp",
+    "test:watch": "deno test --watch --allow-read=$NO_WING_STATE_DIR,$AWS_CREDENTIALS_PATH --allow-write=$NO_WING_STATE_DIR --allow-env=AWS_PROFILE,AWS_REGION,GIT_AUTHOR_NAME,GIT_AUTHOR_EMAIL,NO_WING_STATE_DIR,AWS_CREDENTIALS_PATH --allow-net=$AWS_ENDPOINTS --allow-temp",
+    "test:coverage": "deno test --coverage=coverage --allow-read=$NO_WING_STATE_DIR,$AWS_CREDENTIALS_PATH --allow-write=$NO_WING_STATE_DIR --allow-env=AWS_PROFILE,AWS_REGION,GIT_AUTHOR_NAME,GIT_AUTHOR_EMAIL,NO_WING_STATE_DIR,AWS_CREDENTIALS_PATH --allow-net=$AWS_ENDPOINTS --allow-temp && deno coverage coverage",
     "lint": "deno lint",
     "fmt": "deno fmt",
     "check": "deno check main.ts"

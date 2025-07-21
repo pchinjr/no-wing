@@ -1,0 +1,11 @@
+# Environment variables
+.env
+
+# State directory
+/state/
+
+# Coverage reports
+/coverage/
+
+# Deno lock file
+deno.lock
