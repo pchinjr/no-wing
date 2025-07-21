@@ -1,6 +1,6 @@
 {
-  "agentName": "q-agent",
-  "iamRolePattern": "no-wing-agent-{projectName}",
-  "auditLogPath": "./state/audit.log",
+  "agentName": "default-agent",
+  "iamRolePattern": "no-wing-{agent}-role",
+  "auditLogPath": "audit.log",
   "permissionsBoundary": null
 }
