@@ -411,18 +411,21 @@ async function runQ() {
   const args = parse(Deno.args);
   const config = await getConfig();
   
-  console.log(`Running Amazon Q as agent: ${config.agentName}`);
+  // Check if agent is specified in args
+  const agentName = args.agent || config.agentName;
+  
+  console.log(`Running Amazon Q as agent: ${agentName}`);
   
   try {
     // Import the GitIdentityManager
     const { GitIdentityManager } = await import("./lib/git.ts");
     
     // Create git identity manager with agent identity
-    const authorName = `${config.agentName}-agent`;
-    const authorEmail = `${config.agentName}@no-wing.local`;
+    const authorName = `${agentName}-agent`;
+    const authorEmail = `${agentName}@no-wing.local`;
     
     const gitManager = new GitIdentityManager({
-      agentName: config.agentName,
+      agentName,
       authorName,
       authorEmail,
     });
@@ -433,16 +436,44 @@ async function runQ() {
     
     // Log the action
     await logAudit("q-start", {
-      agent: config.agentName,
+      agent: agentName,
       authorName,
       authorEmail,
     });
     
-    // Run Amazon Q CLI
+    // Run Amazon Q CLI with a specific model to avoid hanging
     console.log("Starting Amazon Q...");
     
+    // Extract any additional arguments to pass to q
+    const qArgs = ["chat"];
+    
+    // Add model if specified
+    if (args.model) {
+      qArgs.push("--model", args.model);
+    } else {
+      // Default model
+      qArgs.push("--model", "claude-3-5-sonnet-20240620");
+    }
+    
+    // Add any additional arguments passed after 'q'
+    const qIndex = Deno.args.indexOf("q");
+    if (qIndex !== -1 && qIndex < Deno.args.length - 1) {
+      // Filter out the --agent and --model arguments that we've already processed
+      const remainingArgs = Deno.args.slice(qIndex + 1).filter((arg, i, arr) => {
+        if (arg === "--agent" || arg === "--model") {
+          // Skip this arg and the next one (the value)
+          arr.splice(i + 1, 1);
+          return false;
+        }
+        return true;
+      });
+      qArgs.push(...remainingArgs);
+    }
+    
+    console.log(`Running q with args: ${qArgs.join(" ")}`);
+    
     const qCommand = new Deno.Command("q", {
-      args: ["chat"],
+      args: qArgs,
       stdout: "inherit",
       stderr: "inherit",
       stdin: "inherit",
@@ -451,7 +482,7 @@ async function runQ() {
         "GIT_AUTHOR_EMAIL": authorEmail,
         "GIT_COMMITTER_NAME": authorName,
         "GIT_COMMITTER_EMAIL": authorEmail,
-        "NO_WING_AGENT": config.agentName,
+        "NO_WING_AGENT": agentName,
       },
     });
     
@@ -464,7 +495,7 @@ async function runQ() {
     
     // Log the action
     await logAudit("q-exit", {
-      agent: config.agentName,
+      agent: agentName,
       exitCode: qStatus.code,
     });
     
@@ -477,7 +508,7 @@ async function runQ() {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await logAudit("q-failed", {
-      agent: config.agentName,
+      agent: agentName,
       error: errorMessage,
     });
     throw error;

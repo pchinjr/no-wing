@@ -2,8 +2,52 @@
 
 # no-wing-q - Wrapper script for running Amazon Q with no-wing agent identity
 
+# Function to display help
+show_help() {
+  echo "Usage: no-wing-q [OPTIONS]"
+  echo ""
+  echo "Run Amazon Q with no-wing agent identity"
+  echo ""
+  echo "Options:"
+  echo "  --agent NAME     Specify the agent name (overrides config)"
+  echo "  --model MODEL    Specify the model to use (default: claude-3-5-sonnet-20240620)"
+  echo "  --help           Show this help message"
+  echo ""
+  echo "Any additional options will be passed to the 'q chat' command"
+  echo ""
+  echo "Examples:"
+  echo "  no-wing-q"
+  echo "  no-wing-q --agent dev-agent"
+  echo "  no-wing-q --model claude-3-haiku-20240307"
+}
+
+# Parse arguments
+AGENT_OPTION=""
+MODEL_OPTION=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      show_help
+      exit 0
+      ;;
+    --agent)
+      AGENT_OPTION="--agent $2"
+      shift 2
+      ;;
+    --model)
+      MODEL_OPTION="--model $2"
+      shift 2
+      ;;
+    *)
+      # Keep all other arguments to pass to q
+      break
+      ;;
+  esac
+done
+
 # Get the directory of this script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Run the no-wing q command
-deno run --allow-read --allow-write --allow-env --allow-run --allow-net "$SCRIPT_DIR/main.ts" q "$@"
+deno run --allow-read --allow-write --allow-env --allow-run --allow-net "$SCRIPT_DIR/main.ts" q $AGENT_OPTION $MODEL_OPTION "$@"
