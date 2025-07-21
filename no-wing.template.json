@@ -1,0 +1,6 @@
+{
+  "agentName": "q-agent",
+  "iamRolePattern": "no-wing-agent-{projectName}",
+  "auditLogPath": "./state/audit.log",
+  "permissionsBoundary": null
+}
