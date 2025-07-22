@@ -452,7 +452,7 @@ async function runQ() {
       qArgs.push("--model", args.model);
     } else {
       // Default model
-      qArgs.push("--model", "claude-3-5-sonnet-20240620");
+      qArgs.push("--model", "claude-3.5-sonnet");
     }
     
     // Add any additional arguments passed after 'q'

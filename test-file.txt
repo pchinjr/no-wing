@@ -1,2 +1,0 @@
-This is a test file to demonstrate the git-commit functionality.
-It will be committed using the no-wing agent identity.
