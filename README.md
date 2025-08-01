@@ -1,10 +1,9 @@
-```markdown
-# 🦈 No-Wing
+# 🪽 No-Wing
 
-**No-Wing** is an experimental platform for managing artificial agents as secure, auditable digital employees.
+**No-Wing** is an experimental platform for managing artificials with agentic development.
 
 This MVP implements a minimal **MCP-compatible server** that:
-- Accepts an `intent.yml` describing a developer goal
+- Accepts an `intent.yml` describing a goal
 - Routes the intent to an artificial agent (e.g. OpenAI Codex, GPT, Claude)
 - Writes the agent's output to a `workspace/` directory
 
@@ -69,4 +68,3 @@ Check `workspace/output.ts` for the result.
 * [ ] Add `no-wing deploy` to release validated code with least-privilege
 * [ ] Extend to support CLI tools like Q, Gemini, Cursor, Codex, Claude
 * [ ] Build toward LLM OS process model
-
