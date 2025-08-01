@@ -1,70 +1,108 @@
-# 🪽 No-Wing
+# 🦈 No-Wing
 
-**No-Wing** is an experimental platform for managing artificials with agentic development.
+**No-Wing** is a framework for managing artificial agents as secure, auditable digital employees.
 
 This MVP implements a minimal **MCP-compatible server** that:
-- Accepts an `intent.yml` describing a goal
-- Routes the intent to an artificial agent (e.g. OpenAI Codex, GPT, Claude)
-- Writes the agent's output to a `workspace/` directory
+- Accepts an `intent.yml` describing a developer goal
+- Routes the intent to a local or remote agent (e.g. LM Studio)
+- Saves the agent's output to `workspace/`
+- Shuts down cleanly with `Ctrl+C`
+
+---
 
 ## 🧠 Philosophy
 
-> Agents should get a task, execute within clear boundaries, and are held accountable for the results.
+> Agents should work like employees: they get a task, execute within clear boundaries, and are held accountable for the results.
 
-No-Wing provides a common interface and lifecycle model for any artificial capable of generating or transforming code—whether it's an API, CLI tool, or IDE plugin.
+No-Wing provides a common lifecycle for any artificial capable of generating or transforming code—whether it's an API, CLI tool, or IDE plugin.
+
+---
 
 ## 🧱 Project Structure
 
 ```
+
 no-wing/
-├── server.ts           # Minimal MCP-compatible HTTP server
+├── server.ts             # HTTP server (MCP-compatible)
 ├── agents/
-│   └── gpt-agent.ts    # Sample agent that uses OpenAI's API
-├── workspace/          # Where agent output is saved
-├── intent.yml          # Developer goal and constraints
-└── tool_definitions.ts # (WIP) Definitions of MCP tool calls
+│   └── local-agent.ts    # Calls a local LM Studio endpoint
+├── scripts/
+│   └── discover-host.ts  # Auto-discovers host IP for LOCAL\_AGENT\_HOST
+├── intent.yml            # Developer goal and constraints
+├── .env                  # Local agent IP (auto-generated)
+└── workspace/            # Agent output directory
+
 ````
+
+---
 
 ## 🚀 Getting Started
 
-### 1. Set your OpenAI API key
+### 1. Start LM Studio
+- Enable: **“Serve on local network”**
+- Load your model (e.g. `deepseek-r1-distill-qwen-7b`)
+- Ensure it’s listening on port `1234`
+
+---
+
+### 2. Discover Host IP from WSL2
+
+If using WSL2 and LM Studio is on Windows:
+
 ```bash
-export OPENAI_API_KEY=your-key-here
+deno run --allow-run=sh --allow-read --allow-write scripts/discover-host.ts
 ````
 
-### 2. Define your intent
+This writes `LOCAL_AGENT_HOST=...` to your `.env` file automatically.
 
-Edit `intent.yml` to describe the task the artificial should complete.
+---
+
+### 3. Define Your Intent
+
+Edit `intent.yml`:
 
 ```yaml
-goal: "Write a TypeScript function that adds two numbers"
+goal: "Create a TypeScript function that adds two numbers"
 constraints:
   - must use TypeScript
-  - must include a test
+  - must include inline documentation
 acceptance_criteria:
-  - output file must exist in workspace/
+  - output written to workspace/output.ts
 ```
 
-### 3. Start the No-Wing server
+---
+
+### 4. Run the No-Wing Server
 
 ```bash
-deno run --allow-net --allow-read --allow-write server.ts
+deno run --allow-net --allow-read --allow-write --allow-env server.ts
 ```
 
-### 4. Send an MCP-style POST request
+Then:
 
 ```bash
-curl -X POST http://localhost:8000 \
-  -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"Build it"}]}'
+curl -X POST http://localhost:8000 -H "Content-Type: application/json" -d '{}'
 ```
 
 Check `workspace/output.ts` for the result.
 
+---
+
+## ✅ Features
+
+* Graceful shutdown on `Ctrl+C`
+* Uses `.env` to configure local agent host
+* Compatible with LM Studio, GPT, Claude, or custom agents
+* Agent output is validated and logged for alignment
+
+---
+
 ## 🔜 Roadmap
 
-* [ ] Add `no-wing plan` to validate agent output against intent
-* [ ] Add `no-wing commit` to attribute work to agent identity
-* [ ] Add `no-wing deploy` to release validated code with least-privilege
-* [ ] Extend to support CLI tools like Q, Gemini, Cursor, Codex, Claude
-* [ ] Build toward LLM OS process model
+* [ ] `no-wing plan`: Validate output against intent
+* [ ] `no-wing commit`: Attribute work to agent identity
+* [ ] `no-wing deploy`: Deploy with least-privilege credentials
+* [ ] Multi-agent plugin system
+* [ ] LLM OS-style syscall sandboxing
+
+---

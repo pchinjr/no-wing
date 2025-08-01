@@ -1,0 +1,7 @@
+goal: "Create a TypeScript function that adds two numbers"
+constraints:
+  - must use TypeScript
+  - must include inline documentation
+acceptance_criteria:
+  - writes output to workspace/output.ts
+  - passes basic type check
