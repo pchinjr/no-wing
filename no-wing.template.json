@@ -1,6 +1,0 @@
-{
-  "agentName": "default-agent",
-  "iamRolePattern": "no-wing-{agent}-role",
-  "auditLogPath": "audit.log",
-  "permissionsBoundary": null
-}
