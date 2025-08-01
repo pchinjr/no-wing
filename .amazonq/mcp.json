@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "no-wing-fs-guard": {
+      "command": "deno",
+      "args": ["run", "-A", "tools/stdio-mcp-server.ts"],
+      "timeout": 60000
+    }
+  }
+}

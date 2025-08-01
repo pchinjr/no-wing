@@ -3,7 +3,7 @@ import "https://deno.land/std@0.224.0/dotenv/load.ts";
 
 const HOST = Deno.env.get("LOCAL_AGENT_HOST") || "localhost";
 
-export async function runAgent(intent: string): Promise<string> {
+export async function runLocalAgent(intent: string): Promise<string> {
   const response = await fetch(`http://${HOST}:1234/v1/chat/completions`, {
     method: "POST",
     headers: {
