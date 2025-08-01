@@ -1,118 +1,72 @@
-# No-Wing
+```markdown
+# 🦈 No-Wing
 
-Agent Identity Manager for AWS and Git operations.
+**No-Wing** is an experimental platform for managing artificial agents as secure, auditable digital employees.
 
-## Overview
+This MVP implements a minimal **MCP-compatible server** that:
+- Accepts an `intent.yml` describing a developer goal
+- Routes the intent to an artificial agent (e.g. OpenAI Codex, GPT, Claude)
+- Writes the agent's output to a `workspace/` directory
 
-No-Wing is a tool for managing agent identities when working with AWS and Git. It allows you to:
+## 🧠 Philosophy
 
-- Create and assign IAM roles to agents
-- Run commands as an agent with specific IAM roles
-- Make Git commits with agent identities
-- Run Amazon Q with agent identities
-- Track agent activities in an audit log
+> Agents should get a task, execute within clear boundaries, and are held accountable for the results.
 
-## Installation
+No-Wing provides a common interface and lifecycle model for any artificial capable of generating or transforming code—whether it's an API, CLI tool, or IDE plugin.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/no-wing.git
-   cd no-wing
-   ```
+## 🧱 Project Structure
 
-2. Make sure you have Deno installed:
-   ```bash
-   curl -fsSL https://deno.land/x/install/install.sh | sh
-   ```
+```
+no-wing/
+├── server.ts           # Minimal MCP-compatible HTTP server
+├── agents/
+│   └── gpt-agent.ts    # Sample agent that uses OpenAI's API
+├── workspace/          # Where agent output is saved
+├── intent.yml          # Developer goal and constraints
+└── tool_definitions.ts # (WIP) Definitions of MCP tool calls
+````
 
-3. Initialize the project:
-   ```bash
-   deno task start init
-   ```
+## 🚀 Getting Started
 
-## Usage
+### 1. Set your OpenAI API key
+```bash
+export OPENAI_API_KEY=your-key-here
+````
 
-### Initialize the project
+### 2. Define your intent
+
+Edit `intent.yml` to describe the task the artificial should complete.
+
+```yaml
+goal: "Write a TypeScript function that adds two numbers"
+constraints:
+  - must use TypeScript
+  - must include a test
+acceptance_criteria:
+  - output file must exist in workspace/
+```
+
+### 3. Start the No-Wing server
 
 ```bash
-deno task start init
+deno run --allow-net --allow-read --allow-write server.ts
 ```
 
-This creates a `.no-wing` directory with configuration and audit log files.
-
-### Assign an IAM role to an agent
+### 4. Send an MCP-style POST request
 
 ```bash
-deno task start assign-role
+curl -X POST http://localhost:8000 \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Build it"}]}'
 ```
 
-### Run a command as an agent
+Check `workspace/output.ts` for the result.
 
-```bash
-deno task start run -- aws s3 ls
-```
+## 🔜 Roadmap
 
-### Make a Git commit as an agent
+* [ ] Add `no-wing plan` to validate agent output against intent
+* [ ] Add `no-wing commit` to attribute work to agent identity
+* [ ] Add `no-wing deploy` to release validated code with least-privilege
+* [ ] Extend to support CLI tools like Q, Gemini, Cursor, Codex, Claude
+* [ ] Build toward LLM OS process model
 
-```bash
-deno task start git-commit --message "Your commit message" --name "Agent Name" --email "agent@example.com"
-```
-
-### Run Amazon Q with agent identity
-
-```bash
-./no-wing-q
-```
-
-This will run Amazon Q with the agent identity specified in your configuration.
-
-#### Options for no-wing-q
-
-```bash
-./no-wing-q --help
-```
-
-```
-Usage: no-wing-q [OPTIONS]
-
-Run Amazon Q with no-wing agent identity
-
-Options:
-  --agent NAME     Specify the agent name (overrides config)
-  --model MODEL    Specify the model to use (default: claude-3-5-sonnet-20240620)
-  --help           Show this help message
-
-Any additional options will be passed to the 'q chat' command
-
-Examples:
-  no-wing-q
-  no-wing-q --agent dev-agent
-  no-wing-q --model claude-3-haiku-20240307
-```
-
-### View the audit log
-
-```bash
-deno task start audit
-```
-
-## Configuration
-
-The configuration is stored in `.no-wing/config.json`. You can edit this file to change the default agent name, IAM role pattern, and other settings.
-
-## How Amazon Q Integration Works
-
-When you run `./no-wing-q`, the following happens:
-
-1. The agent identity is set up with the specified name (from config or `--agent` option)
-2. Git environment variables are set to use the agent identity for any Git operations
-3. Amazon Q is launched with the specified model
-4. When Amazon Q makes Git commits, they will be attributed to the agent identity
-5. After the Amazon Q session ends, the Git identity is reset to your default identity
-6. All actions are logged in the audit log
-
-This allows you to clearly track which commits were made by Amazon Q acting as a specific agent.
-
-## License
-
-MIT
