@@ -1,7 +1,7 @@
-goal: "Create a TypeScript function that adds two numbers"
+goal: "Write planning doc for a cat photo sharing app"
 constraints:
-  - must use TypeScript
-  - must include inline documentation
+  - backend language is TypeScript
+  - deployment target is AWS Cloud with Sererless infra
+  - choose the best front end library
 acceptance_criteria:
   - writes output to workspace/output.ts
-  - passes basic type check
