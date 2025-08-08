@@ -1,0 +1,15 @@
+goal: "Use the hello_world MCP tool to create a personalized greeting"
+constraints:
+  - must use the hello_world MCP tool
+  - must include a custom name parameter
+  - must capture the tool response
+  - output should be saved to workspace/greeting-output.json
+acceptance_criteria:
+  - tool call successfully executed
+  - response includes greeting, timestamp, and metadata
+  - output written to workspace/greeting-output.json
+  - greeting contains the specified custom name
+mcp_tools:
+  - name: hello_world
+    server_url: http://localhost:8001
+    description: "A simple greeting tool for testing MCP integration"
