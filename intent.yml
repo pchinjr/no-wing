@@ -1,6 +1,0 @@
-goal: |
-  Write a TypeScript function called `getCatPhotos` returning 3 cat image URLs,
-  and use the `fs_guard` tool to write the code to "./workspace/output.ts".
-constraints:
-  - Must use TypeScript
-  - Must define function getCatPhotos
