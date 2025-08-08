@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "no-wing-mcp": {
+      "command": "/home/pchinjr/.deno/bin/deno",
+      "args": ["run", "-A", "./server_stdio.ts"],
+      "timeout": 60000
+    }
+  }
+}
